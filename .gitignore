@@ -1,6 +1,13 @@
 # macOS junk
 .DS_Store
 
+# mnist dataset
+mnist_train.csv
+mnist_test.csv
+
+# tensorboard logs
+*logs*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

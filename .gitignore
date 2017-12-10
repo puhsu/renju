@@ -1,10 +1,6 @@
 # macOS junk
 .DS_Store
 
-# mnist dataset
-mnist_train.csv
-mnist_test.csv
-
 # tensorboard logs
 *logs*
 

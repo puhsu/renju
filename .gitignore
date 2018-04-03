@@ -13,6 +13,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# lab3 artifacts
+lab3/models/
+lab3/data/
+
 # C extensions
 *.so
 

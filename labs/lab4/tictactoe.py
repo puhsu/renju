@@ -446,9 +446,11 @@ class Game():
 
 
             if self.winner == 'X':
-                reward = 1
+                reward = 10
             if self.winner == 'O':
-                reward = -1
+                reward = -10
+            elif self.draw:
+                reward = 1
 
 
             if train and step != 0:
@@ -473,9 +475,11 @@ class Game():
             
 
             if self.winner == 'O':
-                reward = 1
+                reward = 10
             elif self.winner == 'X':
-                reward = -1
+                reward = -10
+            elif self.draw:
+                reward = 1
 
             if train and step != 1:
                 self.playerO.update(old_state=self.stateO,
@@ -669,16 +673,24 @@ class Qlearner():
         self.Q[old_state, old_action] += self.alpha * (reward + self.discount * maxQ - \
                                                        self.Q[old_state, old_action])
         
-if __name__ == '__main__':
+if __name__ == '__main__':    
+    humanX = Human(side='X')
+    humanO = Human(side='O')
+
+
     agentX = Qlearner(alpha=1.0, eps=.01, discount=1.0, side='X')
     agentO = Qlearner(alpha=1.0, eps=.01, discount=1.0, side='O')
     game = Game(agentX, agentO)
-    game.state
 
-    humanO = Human(side='O')
-    agentX, agentO = game.train_agents(iterations=100000, verbose=True)
+
+    agentX, agentO = game.train_agents(iterations=50000, verbose=True)
+    agentX.eps = .5
+
+    game = Game(agentX, agentO)
+    agentX, agentO = game.train_agents(iterations=60000, verbose=True)
+
+    game = Game(humanX, agentO)
+    game.interactive_game()
 
     game = Game(agentX, humanO)
     game.interactive_game()
-    print(agentO.Q)
-    print(len(agentO.Q))

@@ -1,0 +1,9 @@
+#+title: Log
+This file contains usefull information I've found, as well as ideas/bugs/fixes etc.
+* Info (usefull links)
+  - [[http://web.stanford.edu/%257Esurag/posts/alphazero.html][general implementation of alpha zero in python (tutorial)]]
+  - [[http://mcts.ai/about/index.html][MCTS]]
+  - [[http://amid.fish/reproducing-deep-rl][reproducing deep rl papers (advice)]]
+  - [[https://www.youtube.com/watch?v=8EcdaCk9KaQ][Deep RL Bootcamp Lecture 6: Nuts and Bolts of Deep RL Experimentation]]
+* Progress [0/1]
+  - [ ] Implement monte carlo tree search algorithm in cpp

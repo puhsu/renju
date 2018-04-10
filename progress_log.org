@@ -1,6 +1,6 @@
 #+title: Log
-This file contains usefull information I've found, as well as ideas/bugs/fixes etc.
-* Info (usefull links)
+This file contains useful information I've found, as well as ideas/bugs/fixes etc.
+* Info (useful links)
   - [[http://web.stanford.edu/%257Esurag/posts/alphazero.html][general implementation of alpha zero in python (tutorial)]]
   - [[http://mcts.ai/about/index.html][MCTS]]
   - [[http://amid.fish/reproducing-deep-rl][reproducing deep rl papers (advice)]]

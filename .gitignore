@@ -115,3 +115,4 @@ ENV/
 .mypy_cache/
 
 *.csv
+data/

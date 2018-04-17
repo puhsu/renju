@@ -117,3 +117,7 @@ ENV/
 .mypy_cache/
 
 *.csv
+*.bz2
+*.npz
+*.npy
+/data/.gitattributes

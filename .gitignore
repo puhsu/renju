@@ -1,5 +1,8 @@
 # Current project
 models
+train-1.renju
+train-2.renju
+data/compressed
 
 # macOS junk
 .DS_Store

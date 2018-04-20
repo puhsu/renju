@@ -103,9 +103,6 @@ def number_shift(n):
         return (0.22, 0.15)
     return (0.10, 0.15)
 
-class TkUI:
-    
-
 
 class PyPlotUI:
     def __init__(self, black='black', white='white'):

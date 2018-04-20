@@ -2,7 +2,7 @@
 models
 train-1.renju
 train-2.renju
-data/compressed
+src/data/train-*
 
 # macOS junk
 .DS_Store

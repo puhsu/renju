@@ -130,3 +130,8 @@ def check(board, pos):
         or check_main_diagonal(board, pos) \
         or check_side_diagonal(board, pos)
 
+
+
+class dotdict(dict):
+    def __getattr__(self, name):
+        return self[name]

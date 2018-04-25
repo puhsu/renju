@@ -147,7 +147,7 @@ if __name__ == '__main__':
         if res == 'white':
             states_count += int(numpy.floor(len(moves) / 2))
 
-    train_generator = DataGenerator(games, states_count)
+    train_generator = DataGenerator(games, states_count, batch_size=300)
     policy = PolicyNetwork(args)
-    policy.train(train_generator)
+    policy.train(train_generator, nb_epochs=3)
 

@@ -82,6 +82,7 @@ class PolicyNetwork:
         # clear previous graphs and close session
         keras.backend.clear_session()
 
+
         self.input_boards = Input(shape=(15, 15, 4))
         x = Conv2D(16, (3, 3), padding='same')(self.input_boards)
         x = Conv2D(16, (3, 3), padding='same')(x)
@@ -98,18 +99,20 @@ class PolicyNetwork:
         x = BatchNormalization()(Activation('relu')(x))
         x = Conv2D(1, (1, 1), padding='same')(x)
 
-        self.predictions = Reshape((225,))(Activation('softmax')(x))
+        self.predictions = Activation('softmax')(Reshape((225,))(x))
         self.model = Model(inputs=self.input_boards,
                            outputs=self.predictions)
 
-        self.model.compile(optimizer=keras.optimizers.Adam(self.args.lr),
+
+
+        self.model.compile(optimizer=keras.optimizers.Adam(),
                            loss='sparse_categorical_crossentropy',
                            metrics=['accuracy'])
 
 
     def train(self, train_generator, valid_generator=None, nb_epochs=1):
         '''
-        Train for nb_epochs on files numbered 00 to files-1
+        Train for nb_epochs
         '''
 
         
@@ -124,10 +127,9 @@ class PolicyNetwork:
         
 if __name__ == '__main__':
     args=util.dotdict({
-        'lr': 0.001,
         'modelfile': None,
         'logdir': 'tensorboard_logs/',
-        'checkpoints': None,
+        'checkpoints': 'model',
     })
 
     games = []

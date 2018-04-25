@@ -10,20 +10,37 @@ import agent
 class GomokuUI(tkinter.Frame):
     def __init__(self, master=None, black=None, white=None, timeout=0):
         super().__init__(master)
-        self.create_widgets()
         self.game = renju.Game()
         self._black = black
         self._white = white
         self._player = self._black
         self._timeout = timeout
         # start game
+        self.create_widgets()
         self.game_loop()
     
     def create_widgets(self):
-        self.board_canvas = BoardCanvas(height=600, width=530)
+        header_text = self._black.name() + ' [black] vs ' + self._white.name() + ' [white]'
+        bottom_text = self._black.name() + ' turn now...'
+
+        self.board_canvas = BoardCanvas(height=550, width=530)
+        self.header = tkinter.Label(self.master, font=('Monaco', 15), text=header_text)
+        self.bottom = tkinter.Label(self.master, font=('Monaco', 15), text=bottom_text, height=2)
         self.board_canvas.bind('<Button-1>', self.read_move)
-        self.board_canvas.display_info('THE SHIT')
+        self.header.pack()
         self.board_canvas.pack()
+        self.bottom.pack()
+
+
+    def reset_game(self, e):
+        if e.char == 'f':
+            self.board_canvas.delete('all')
+            self.board_canvas.draw_board()
+            self.master.unbind('<KeyPress>')
+            self.board_canvas.bind('<Button-1>', self.read_move)
+            self.game = renju.Game()
+            self._player = self._black
+            self.game_loop()
 
 
     def next_player(self):
@@ -43,19 +60,27 @@ class GomokuUI(tkinter.Frame):
             self.board_canvas.draw_stone(*pos, 
                                          color=str(self._player.color()), 
                                          move_n=self.game.move_n())
-            
-            if not self.game:
-                winner = str(self.game._result)
-                self.board_canvas.display_info(f'{winner} win')
-                self.after_cancel(self.alarm_id)
-                return
-                # TODO ask to restart
-                # ...
-            
+
             if self._player.is_human():
                 self._player.pos = None
 
+            
+            if not self.game:
+                if self.game._result == renju.Player.WHITE:
+                    winner = self._white.name() + ' [white]'
+                else:
+                    winner = self._black.name() + ' [black]'
+                self.bottom['text'] = f'{winner} win. Press (F) to play again.'
+                self.master.bind('<KeyPress>', self.reset_game)
+                self.after_cancel(self.alarm_id)
+                return
+                # TODO ask to restart
+                # ...            
+
             self.next_player()
+            bottom_text = self._player.name() + ' turn now...'
+            self.bottom['text'] = bottom_text
+
             if self._player.is_human():
                 self.board_canvas.bind('<Button-1>', self.read_move)
             elif self._timeout:
@@ -80,16 +105,6 @@ class GomokuUI(tkinter.Frame):
                     self._player.pos = (i, j)
                     self.board_canvas.unbind('<Button-1>')
                     return
-
-        self.board_canvas.display_info('CHOOSE EMPTY SPOT')
-
-
-    def update(self, game, probs):
-        move_n = game.move_n()
-        if move_n:
-            pos = game.last_pos()
-            color = str(game._player.another())
-            self.board_canvas.draw_stone(pos[0], pos[1], color, move_n)
 
 
 
@@ -166,5 +181,5 @@ def run_gui(black, white):
     root.mainloop()
 
 if __name__ == '__main__':
-    run_gui(agent.DummyAgent(renju.Player.BLACK), 
-            agent.HumanAgent(renju.Player.WHITE))
+    run_gui(agent.SLAgent(modelfile='models/model03.hdf5', color=renju.Player.BLACK), 
+            agent.HumanAgent(color=renju.Player.WHITE))

@@ -1,5 +1,3 @@
-import concurrent.futures
-import matplotlib.pylab as plt
 import enum
 import itertools
 import logging
@@ -8,11 +6,6 @@ import sys
 import time
 import traceback
 import util
-
-import random
-
-import renju
-import agent
 
 
 class Player(enum.IntEnum):
@@ -52,14 +45,19 @@ class Game:
     def move_n(self):
         return len(self._positions)
 
+    def last_pos(self):
+        return self._positions[-1]
+
     def player(self):
         return self._player
 
     def result(self):
         return self._result
 
-    def board(self):
-        return self._board
+    def board(self, player=Player.NONE):
+        if not player:
+            return self._board
+        return (self._board == player).astype(numpy.int8)
 
     def positions(self, player=Player.NONE):
         if not player:
@@ -96,90 +94,8 @@ class Game:
 
         self._player = self._player.another()
 
-def number_shift(n):
-    if n >= 100:
-        return (0.32, 0.15)
-    if n >= 10:
-        return (0.22, 0.15)
-    return (0.10, 0.15)
 
-
-class PyPlotUI:
-    def __init__(self, black='black', white='white'):
-        plt.ion()
-        self._board = plt.figure(figsize=(8, 8))
-
-        self._ax = self._board.add_subplot(111)
-        self._ax.set_navigate(False)
-
-        self._ax.set_title(f'{black} vs {white}')
-
-        self._ax.set_xlim(-1, Game.width)
-        self._ax.set_ylim(-1, Game.height)
-
-        self._ax.set_xticks(numpy.arange(0, Game.width))
-        self._ax.set_xticklabels(util.POS_TO_LETTER)
-
-        self._ax.set_yticks(numpy.arange(0, Game.height))
-        self._ax.set_yticklabels(numpy.arange(1, Game.height + 1))
-
-        self._ax.grid(zorder=2)
-
-        self._black= self._ax.scatter(
-            (),(),
-            color = 'black',
-            s = 500,
-            edgecolors = 'black',
-            zorder = 3
-        )
-        self._white = self._ax.scatter(
-            (),(),
-            color = 'white',
-            s = 500,
-            edgecolors = 'black',
-            zorder = 3
-        )
-
-        self._probs = self._ax.imshow(
-            numpy.zeros(Game.shape),
-            cmap = 'Reds',
-            interpolation = 'none',
-            vmin = 0.0,
-            vmax = 1.0,
-            zorder = 1
-        )
-
-        self._board.show()
-
-
-    def update(self, game, probs):
-        board = game.board()
-
-        black_positions = util.list_positions(board, Player.BLACK)
-        self._black.set_offsets(black_positions[:, (1, 0)])
-
-        white_positions = util.list_positions(board, Player.WHITE)
-        self._white.set_offsets(white_positions[:, (1, 0)])
-
-        self._ax.texts = []
-        for n, (i, j) in enumerate(game.positions(), 1):
-            shift = number_shift(n)
-            self._ax.text(
-                j - shift[0],
-                i - shift[1],
-                str(n),
-                color = 'white' if n % 2 else 'black',
-                fontsize = 10,
-                zorder = 4
-            )
-
-        self._probs.set_data(probs / 2 * max(probs.max(), 1e-6))
-
-        self._board.canvas.draw()
-
-        return self
-
-def loop(game, black, white, timeout=None):
+def loop(game, black, white):
     yield game, numpy.zeros(game.shape)
 
     for agent in itertools.cycle([black, white]):
@@ -187,20 +103,29 @@ def loop(game, black, white, timeout=None):
             break
         
         probs = agent.policy(game)
+        ind = numpy.unravel_index(numpy.argsort(probs, axis=None)[::-1], (15, 15))
 
-        pos = numpy.unravel_index(probs.argmax(), game.shape)
-        game.move(pos)
+
+        pos = []
+        for i in range(15 * 15):
+            pos.append((ind[0][i], ind[1][i]))
+
+        for p in pos:
+            if game.is_posible_move(p):
+                game.move(p)
+                break
 
         yield game, probs
 
 
 def run_test(black, white, timeout=None):
     game = Game()
-    ui = PyPlotUI(black.name(), white.name())
+    ui = (black.name(), white.name())
 
     try:
-        for game, probs in loop(game, black, white, timeout):
+        for game, probs in loop(game, black, white):
             ui.update(game, probs)
+            
 
     except:
         _, e, tb = sys.exc_info()
@@ -208,28 +133,11 @@ def run_test(black, white, timeout=None):
         traceback.print_tb(tb)
         return game.player().another()
 
-    return game.result()
+    return game.result(), game
 
 
-
-def run(black, white, max_move_n=60, timeout=10):
-    game = Game()
-
-    try:
-        for game, _ in loop(game, black, white, timeout):
-            logging.debug(game.dumps() + '\n' + str(game.board()))
-            if game.move_n() >= max_move_n:
-                break
-
-    except:
-        logging.error('Error!', exc_info=True, stack_info=True)
-        return game.player().another(), game.dumps()
-
-    return game.result(), game.dumps()
 
 if __name__ == "__main__":
-    g = renju.Game()
-    Dummy = agent.DummyAgent('black')
-
-    ui = PyPlotUI()
-    ui.update(g, Dummy.policy(g))
+    Dummy1 = agent.DummyAgent('black')
+    Dummy2 = agent.DummyAgent('white')
+    #run_test(Dummy1, Dummy2)

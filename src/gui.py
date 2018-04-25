@@ -1,33 +1,87 @@
-import itertools
+import tkinter
+import tkinter.font
 import time
-import tkinter as tk
-from tkinter import font
-
+import math
 
 import renju
 import agent
 
-class GomokuUI(tk.Frame):
-    def __init__(self, master=None, black=None, white=None):
+
+class GomokuUI(tkinter.Frame):
+    def __init__(self, master=None, black=None, white=None, timeout=0):
         super().__init__(master)
         self.create_widgets()
-        self.black = black
-        self.white = white
         self.game = renju.Game()
-        # Both players are not humans
-        if black and white:
-            self.board_canvas.unbind('<Button-1>')
-            while self.game:
-                self.game_loop(None)
+        self._black = black
+        self._white = white
+        self._player = self._black
+        self._timeout = timeout
+        # start game
+        self.game_loop()
     
     def create_widgets(self):
         self.board_canvas = BoardCanvas(height=600, width=530)
-        self.board_canvas.bind('<Button-1>', self.game_loop)
+        self.board_canvas.bind('<Button-1>', self.read_move)
+        self.board_canvas.display_info('THE SHIT')
         self.board_canvas.pack()
 
 
-    def game_loop(self, event):
-        pass
+    def next_player(self):
+        if self._player is self._black:
+            self._player = self._white
+        else:
+            self._player = self._black
+
+
+    def game_loop(self):
+        pos = self._player.get_pos(self.game)
+
+        if pos:
+            print(self._player.color(), pos)
+            assert self.game.is_possible_move(pos)
+            self.game.move(pos)
+            self.board_canvas.draw_stone(*pos, 
+                                         color=str(self._player.color()), 
+                                         move_n=self.game.move_n())
+            
+            if not self.game:
+                winner = str(self.game._result)
+                self.board_canvas.display_info(f'{winner} win')
+                self.after_cancel(self.alarm_id)
+                return
+                # TODO ask to restart
+                # ...
+            
+            if self._player.is_human():
+                self._player.pos = None
+
+            self.next_player()
+            if self._player.is_human():
+                self.board_canvas.bind('<Button-1>', self.read_move)
+            elif self._timeout:
+                time.sleep(self._timeout)
+
+        self.alarm_id = self.after(100, self.game_loop)
+
+
+    def read_move(self, event):
+        'Process human move on mouse click'
+        for i in range(15):
+            for j in range(15):
+                pixel_x = (i + 2) * 30
+                pixel_y = (j + 2) * 30
+                square_x = (event.x - pixel_x)**2
+                square_y = (event.y - pixel_y)**2
+                distance = math.sqrt(square_x + square_y)
+
+                if distance < 15 and self.game.is_possible_move((i, j)):
+                    # save position and unbind until next player finishes
+                    # his move
+                    self._player.pos = (i, j)
+                    self.board_canvas.unbind('<Button-1>')
+                    return
+
+        self.board_canvas.display_info('CHOOSE EMPTY SPOT')
 
 
     def update(self, game, probs):
@@ -37,14 +91,22 @@ class GomokuUI(tk.Frame):
             color = str(game._player.another())
             self.board_canvas.draw_stone(pos[0], pos[1], color, move_n)
 
-class BoardCanvas(tk.Canvas):
+
+
+
+
+class BoardCanvas(tkinter.Canvas):
     def __init__(self, master=None, height=0, width=0):
-        tk.Canvas.__init__(self, master, height=height, width=width)
+        tkinter.Canvas.__init__(self, master, height=height, width=width)
         
         # init
-        self.legend_font = font.Font(family='Monaco', size=14, weight='normal')
-        self.move_font = font.Font(family='Monaco', size=10, weight='bold')
+        self.width = width
+        self.height = height
+        self.info = None
+        self.legend_font = tkinter.font.Font(family='Monaco', size=14, weight='normal')
+        self.move_font = tkinter.font.Font(family='Monaco', size=10, weight='bold')
         self.draw_board()
+
 
     def draw_board(self):
         # draw background
@@ -72,11 +134,18 @@ class BoardCanvas(tk.Canvas):
 
             if 0 < j < 16:
                 self.add_text(start_pixel_x - 15, start_pixel_y, f'{16 - j}', font=self.legend_font)
+
         
     def add_text(self, x, y, text, **kwargs):
-        text_id = self.create_text(x, y, **kwargs)
-        self.itemconfigure(text_id, text=text)
+        text_id = self.create_text(x, y, text=text, **kwargs)
         
+
+    def display_info(self, text):
+        if self.info:
+            self.delete(self.info)
+        self.info = self.create_text(self.width / 2, self.height - 20, text=text, font=self.legend_font)
+
+
 
     def draw_stone(self, row, col, color, move_n):
         start_pixel_x = (row + 2) * 30 - 12
@@ -91,19 +160,11 @@ class BoardCanvas(tk.Canvas):
 
 def run_gui(black, white):
     game = renju.Game()
-
-    root = tk.Tk()
-    app = GomokuUI(master=root)
+    root = tkinter.Tk()
+    app = GomokuUI(master=root, black=black, white=white, timeout=0)
     app.master.title("Gomoku")
-
-    for game, probs in renju.loop(game, black, white):
-        app.update(game, probs)
-        time.sleep(.5)
-        root.update_idletasks()
-        root.update()
-    
-    app.update(game, probs)
     root.mainloop()
 
 if __name__ == '__main__':
-    run_gui(agent.DummyAgent('black'), agent.DummyAgent('white'))
+    run_gui(agent.DummyAgent(renju.Player.BLACK), 
+            agent.HumanAgent(renju.Player.WHITE))

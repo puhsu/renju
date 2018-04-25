@@ -77,13 +77,13 @@ class Game:
         return game
 
 
-    def is_posible_move(self, pos):
+    def is_possible_move(self, pos):
         return 0 <= pos[0] < self.height \
             and 0 <= pos[1] < self.width \
             and not self._board[pos]
 
     def move(self, pos):
-        assert self.is_posible_move(pos), f'impossible pos: {pos}'
+        assert self.is_possible_move(pos), f'impossible pos: {pos}'
 
         self._positions.append(pos)
         self._board[pos] = self._player
@@ -111,7 +111,7 @@ def loop(game, black, white):
             pos.append((ind[0][i], ind[1][i]))
 
         for p in pos:
-            if game.is_posible_move(p):
+            if game.is_possible_move(p):
                 game.move(p)
                 break
 
@@ -134,10 +134,3 @@ def run_test(black, white, timeout=None):
         return game.player().another()
 
     return game.result(), game
-
-
-
-if __name__ == "__main__":
-    Dummy1 = agent.DummyAgent('black')
-    Dummy2 = agent.DummyAgent('white')
-    #run_test(Dummy1, Dummy2)

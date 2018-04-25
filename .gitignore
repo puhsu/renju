@@ -1,8 +1,6 @@
 # Current project
 models
-train-1.renju
-train-2.renju
-src/data/train-*
+src/data/
 
 # macOS junk
 .DS_Store
@@ -120,7 +118,3 @@ ENV/
 *.bz2
 *.npz
 *.npy
-/data/.gitattributes
-/src/data/test.renju
-/src/data/train.renju
-/src/data/train.py

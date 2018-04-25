@@ -121,3 +121,6 @@ ENV/
 *.npz
 *.npy
 /data/.gitattributes
+/src/data/test.renju
+/src/data/train.renju
+/src/data/train.py

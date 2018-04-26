@@ -1,0 +1,2 @@
+test.renju filter=lfs diff=lfs merge=lfs -text
+train.renju filter=lfs diff=lfs merge=lfs -text

@@ -19,6 +19,7 @@ class GomokuUI(tkinter.Frame):
         self.create_widgets()
         self.game_loop()
     
+
     def create_widgets(self):
         header_text = self._black.name() + ' [black] vs ' + self._white.name() + ' [white]'
         bottom_text = self._black.name() + ' turn now...'
@@ -176,10 +177,10 @@ class BoardCanvas(tkinter.Canvas):
 def run_gui(black, white):
     game = renju.Game()
     root = tkinter.Tk()
-    app = GomokuUI(master=root, black=black, white=white, timeout=0)
+    app = GomokuUI(master=root, black=black, white=white, timeout=1)
     app.master.title("Gomoku")
     root.mainloop()
 
 if __name__ == '__main__':
-    run_gui(agent.SLAgent(modelfile='models/model03.hdf5', color=renju.Player.BLACK), 
-            agent.HumanAgent(color=renju.Player.WHITE))
+    run_gui(agent.SLAgent(modelfile='models/model03.hdf5', color=renju.Player.BLACK),
+            agent.SLAgent(modelfile='models/model03.hdf5', color=renju.Player.WHITE))

@@ -117,3 +117,4 @@ ENV/
 *.bz2
 *.npz
 *.npy
+/src/cpp_test/libs

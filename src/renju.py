@@ -59,6 +59,20 @@ class Game:
             return self._board
         return (self._board == player).astype(numpy.int8)
 
+    def valid(self):
+        return (self._board == Player.NONE).astype(numpy.int8)
+
+    def state(self):
+        '''
+        return state for current player as numpy array of shape (15, 15, 4)
+        '''
+        state = numpy.zeros((15, 15, 4))
+        state[..., 0] = self.board(player=self.player())
+        state[..., 1] = self.board(player=self.player().another())
+        if self.player() == Player.BLACK:
+            state[..., 2] = 1
+        return state
+
     def positions(self, player=Player.NONE):
         if not player:
             return self._positions
@@ -94,43 +108,9 @@ class Game:
 
         self._player = self._player.another()
 
-
-def loop(game, black, white):
-    yield game, numpy.zeros(game.shape)
-
-    for agent in itertools.cycle([black, white]):
-        if not game:
-            break
-        
-        probs = agent.policy(game)
-        ind = numpy.unravel_index(numpy.argsort(probs, axis=None)[::-1], (15, 15))
-
-
-        pos = []
-        for i in range(15 * 15):
-            pos.append((ind[0][i], ind[1][i]))
-
-        for p in pos:
-            if game.is_possible_move(p):
-                game.move(p)
-                break
-
-        yield game, probs
-
-
-def run_test(black, white, timeout=None):
-    game = Game()
-    ui = (black.name(), white.name())
-
-    try:
-        for game, probs in loop(game, black, white):
-            ui.update(game, probs)
-            
-
-    except:
-        _, e, tb = sys.exc_info()
-        print(e)
-        traceback.print_tb(tb)
-        return game.player().another()
-
-    return game.result(), game
+    def undo(self):
+        '''
+        Undo last move
+        '''
+        i, j = self.positions().pop()
+        self.board()[i, j] = 0

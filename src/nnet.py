@@ -152,7 +152,7 @@ class PolicyNetwork:
         x = Conv2D(32, (3, 3), padding='same')(x)
         x = Conv2D(32, (3, 3), padding='same')(x)
         x = BatchNormalization()(Activation('relu')(x))
-
+        
         x = Conv2D(64, (3, 3), padding='same')(x)
         x = Conv2D(64, (3, 3), padding='same')(x)
         x = Conv2D(64, (3, 3), padding='same')(x)
@@ -187,7 +187,7 @@ if __name__ == '__main__':
     args=util.dotdict({
         'modelfile': 'models/model03.hdf5',
         'logdir': 'tensorboard_logs/',
-        'checkpoints': 'model.augmentations.',
+        'checkpoints': 'models/model.augmentations.',
         'valid_size': 10000
     })
 

@@ -1,6 +1,5 @@
 import tkinter
 import tkinter.font
-import time
 import math
 
 import renju
@@ -34,7 +33,7 @@ class GomokuUI(tkinter.Frame):
 
 
     def reset_game(self, e):
-        if e.char == 'f':
+        if e.char == 'h':
             self.board_canvas.delete('all')
             self.board_canvas.draw_board()
             self.master.unbind('<KeyPress>')
@@ -55,7 +54,6 @@ class GomokuUI(tkinter.Frame):
         pos = self._player.get_pos(self.game)
 
         if pos:
-            print(self._player.color(), pos)
             assert self.game.is_possible_move(pos)
             self.game.move(pos)
             self.board_canvas.draw_stone(*pos, 
@@ -65,18 +63,17 @@ class GomokuUI(tkinter.Frame):
             if self._player.is_human():
                 self._player.pos = None
 
-            
             if not self.game:
                 if self.game._result == renju.Player.WHITE:
                     winner = self._white.name() + ' [white]'
                 else:
                     winner = self._black.name() + ' [black]'
-                self.bottom['text'] = f'{winner} win. Press (F) to play again.'
+                    
+                self.bottom['text'] = f'{winner} win. Press (H) to play again.'
                 self.master.bind('<KeyPress>', self.reset_game)
-                self.after_cancel(self.alarm_id)
-                return
-                # TODO ask to restart
-                # ...            
+                self.after_cancel(self.alarm_id)                
+
+                return self.game._result
 
             self.next_player()
             bottom_text = self._player.name() + ' turn now...'
@@ -84,10 +81,15 @@ class GomokuUI(tkinter.Frame):
 
             if self._player.is_human():
                 self.board_canvas.bind('<Button-1>', self.read_move)
-            elif self._timeout:
-                time.sleep(self._timeout)
 
         self.alarm_id = self.after(100, self.game_loop)
+
+
+    def test_loop(self):
+        while True:
+            res = self.game_loop()
+            if res == renju.Player.BLACK or res == renju.Player.WHITE:
+                return res
 
 
     def read_move(self, event):
@@ -177,10 +179,52 @@ class BoardCanvas(tkinter.Canvas):
 def run_gui(black, white):
     game = renju.Game()
     root = tkinter.Tk()
-    app = GomokuUI(master=root, black=black, white=white, timeout=1)
-    app.master.title("Gomoku")
+    app = GomokuUI(master=root, black=black, white=white, timeout=0)
+    root.title("Gomoku")
     root.mainloop()
 
+def run_test(black, white, games_count=100):
+    black_win = 0
+    white_win = 0
+
+    
+
+    for i in range(games_count):
+        game = renju.Game()
+        cur = black
+        while game:
+            game.move(cur.get_pos(game))
+            if cur is black:
+                cur = white
+            else:
+                cur = black
+
+        if game.result() == renju.Player.BLACK:
+            black_win += 1
+        else:
+            white_win += 1
+
+        print(f'STEP {i}, white={white_win} black={black_win}')
+
+    white_win /= games_count
+    black_win /= games_count
+
+    print(f'black -- {black_win}\nwhite -- {white_win}')
+
 if __name__ == '__main__':
-    run_gui(agent.SLAgent(modelfile='models/model03.hdf5', color=renju.Player.BLACK),
-            agent.SLAgent(modelfile='models/model03.hdf5', color=renju.Player.WHITE))
+    #run_test(agent.SLAgent(modelfile='models/model.augmentations.03.hdf5', color=renju.Player.BLACK),
+    #         agent.SLAgent(modelfile='models/model03.hdf5', color=renju.Player.WHITE))
+    
+    #run_test(agent.DummyAgent(color=renju.Player.BLACK),
+    #         agent.DummyAgent(color=renju.Player.WHITE),
+    #         games_count = 1000)
+
+    run_gui(agent.HumanAgent(color=renju.Player.BLACK),
+            agent.SLAgent(modelfile='models/model.augmentations.01.hdf5', color=renju.Player.WHITE))
+
+    #run_test(agent.SLAgent(modelfile='models/model03.hdf5', color=renju.Player.BLACK),
+    #         agent.TreeAgent(modelfile='models/model03.hdf5', max_depth=10, num_iters=500, color=renju.Player.WHITE))
+
+    #run_test(agent.DummyAgent(color=renju.Player.BLACK),
+    #         agent.DummyAgent(color=renju.Player.WHITE), games_count=10000)
+

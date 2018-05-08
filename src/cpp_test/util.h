@@ -14,6 +14,7 @@ using tensorflow::Tensor;
 
 typedef Eigen::Array<float, 15, 15, Eigen::RowMajor> EigenArray;
 typedef Eigen::Tensor<float, 2, Eigen::RowMajor> EigenTensor;
+typedef std::pair<int, int> pos_t;
 
 
 // GAME UTIL FUNCTIONS
@@ -36,7 +37,6 @@ Color another(Color c) {
 }
 
 
-typedef std::pair<int, int> pos_t;
 std::string POS_TO_LETTER = "abcdefghjklmnop";
 std::unordered_map<char, int> LETTER_TO_POS;
 
@@ -56,7 +56,6 @@ pos_t to_pos(std::string move) {
 
 
 
-// TENSORFLOW UTIL FUNCTIONS
 
 // create new session and load saved graph
 void load_model(std::string modelfile, Session **session) {

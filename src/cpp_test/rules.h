@@ -4,15 +4,110 @@
 #include <memory>
 #include <cassert>
 
+#include "tensorflow/core/public/session.h"
+#include "tensorflow/core/platform/env.h"
+#include "tensorflow/cc/framework/ops.h"
 
-#include "util.h"
+using tensorflow::Session;
+using tensorflow::Status;
+using tensorflow::Tensor;
+
+typedef Eigen::Array<float, 15, 15, Eigen::RowMajor> EigenArray;
+typedef Eigen::Tensor<float, 2, Eigen::RowMajor> EigenTensor;
+typedef std::pair<int, int> pos_t;
+
+
+// GAME UTIL FUNCTIONS
+enum Color {
+    NONE = 0,
+    BLACK = -1,
+    WHITE = 1
+};
+
+Color another(Color c) {
+    if (c == WHITE) {
+        return BLACK;
+    }
+
+    if (c == BLACK) {
+        return WHITE;
+    }
+
+    return NONE;
+}
+
+
+std::string POS_TO_LETTER = "abcdefghjklmnop";
+std::unordered_map<char, int> LETTER_TO_POS;
+
+std::string to_move(pos_t pos) {
+    return POS_TO_LETTER[pos.first] + std::to_string(pos.second);
+}
+
+pos_t to_pos(std::string move) {
+    if (LETTER_TO_POS.size() != POS_TO_LETTER.size()) {
+        for (int i = 0; i < POS_TO_LETTER.length(); ++i) {
+            LETTER_TO_POS[POS_TO_LETTER[i]] = i;
+        }
+    }
+    return {stoi(move.substr(1, move.length())), LETTER_TO_POS[move[0]]};
+}
+
+
+// TENSORFLOW UTIL FUNCTIONS
+
+// create new session and load saved graph
+void load_model(std::string modelfile, Session **session) {
+    // Initialize session
+    Status status = tensorflow::NewSession(tensorflow::SessionOptions(), session);
+    if (!status.ok()) {
+        std::cerr << status.ToString() << "\n";
+        exit(1);
+    }
+
+    // Read in the protobuf graph we exported
+    tensorflow::GraphDef graph_def;
+    status = tensorflow::ReadBinaryProto(tensorflow::Env::Default(), modelfile, &graph_def);
+    if (!status.ok()) {
+        std::cerr << status.ToString() << "\n";
+        exit(1);
+    }
+
+    // Add the graph to the session
+    status = (*session)->Create(graph_def);
+    if (!status.ok()) {
+        std::cerr << status.ToString() << "\n";
+        exit(1);
+    }
+}
+
+
+// run model on input tensor and return matrix of probabilities
+EigenTensor run_model(Session *session, Tensor input) {
+    Status status;
+    std::vector<std::pair<tensorflow::string, Tensor>> feed_dict = {
+        {"input_1", input}
+    };
+    std::vector<Tensor> outputs;
+
+    // Run the session
+    status = session->Run(feed_dict, {"output_node0"}, {}, &outputs);
+    if (!status.ok()) {
+        std::cout << status.ToString() << "\n";
+        exit(1);
+    }
+
+    return outputs[0].matrix<float>();
+}
+
+
 
 
 class Game {
 private:
     static constexpr int width = 15;
     static constexpr int height = 15;
-    const int line_length = 5;
+    static const int line_length = 5;
 
     Color result = NONE;
     Color player = BLACK;
@@ -88,16 +183,46 @@ private:
             return false;
         }
 
-        return check_row(i, j) \
-            || check_col(i, j) \
-            || check_main_diag(i, j) \
+        return check_row(i, j)
+            || check_col(i, j)
+            || check_main_diag(i, j)
             || check_side_diag(i, j);
     }
 
 public:
     Game() {
+        // default constructor
         board.setZero();
         positions.resize(0);
+    }
+
+    Game(std::string data) {
+        // construct game from existing game data with moves
+        std::cout << data << "\n";
+        board.setZero();
+        positions.resize(0);
+
+        std::vector<std::string> moves;
+        std::istringstream iss(data);
+        std::copy(std::istream_iterator<std::string>(iss),
+                  std::istream_iterator<std::string>(),
+                  std::back_inserter(moves));
+
+        for (auto m : moves) {
+            std::cout << m << "\n";
+            pos_t pos = to_pos(m);
+            std::cout << pos.first << " " << pos.second << "\n";
+            move(pos.first, pos.second);
+        }
+    }
+
+    Game& operator=(Game other)
+    {
+        std::swap(result, other.result);
+        std::swap(player, other.player);
+        std::swap(board, other.board);
+        std::swap(positions, other.positions);
+        return *this;
     }
     
     bool is_possible_move(int i, int j) const {
@@ -177,3 +302,9 @@ public:
         std::cout << board << std::endl;
     }
 };
+
+Game wait_for_game_update() {
+    std::string data;
+    std::getline(std::cin, data);
+    return Game(data);
+}

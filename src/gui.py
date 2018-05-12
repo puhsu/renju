@@ -218,11 +218,13 @@ if __name__ == '__main__':
     #run_test(agent.DummyAgent(color=renju.Player.BLACK),
     #         agent.DummyAgent(color=renju.Player.WHITE),
     #         games_count = 1000)
+    tree = agent.TreeAgent(modelfile='models/model.augmentations.01.hdf5', max_depth=10, num_iters=200, color=renju.Player.WHITE)
 
     run_gui(agent.HumanAgent(color=renju.Player.BLACK),
-            agent.SLAgent(modelfile='models/model.augmentations.01.hdf5', color=renju.Player.WHITE))
+            tree)
 
-    #run_test(agent.SLAgent(modelfile='models/model03.hdf5', color=renju.Player.BLACK),
+    #
+    #run_test(,
     #         agent.TreeAgent(modelfile='models/model03.hdf5', max_depth=10, num_iters=500, color=renju.Player.WHITE))
 
     #run_test(agent.DummyAgent(color=renju.Player.BLACK),

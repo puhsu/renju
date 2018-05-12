@@ -10,5 +10,5 @@ include_directories(
 
 
 link_directories(${CMAKE_SOURCE_DIR}/libs/tensorflow/lib/osx/)
-add_executable(gomoku main.cc rules.h util.h)
+add_executable(gomoku main.cc rules.h)
 target_link_libraries(gomoku tensorflow_cc)

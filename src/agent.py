@@ -7,6 +7,7 @@ import sys
 
 import util
 import renju
+import time
 
 
 class Agent(metaclass=abc.ABCMeta):
@@ -148,6 +149,7 @@ class TreeAgent(Agent):
         self.max_actions = max_actions
         self.num_iters = num_iters
         self.game = None
+        self.count_nnet = 0
 
 
     def name(self):
@@ -166,6 +168,8 @@ class TreeAgent(Agent):
         """
         return most probable actions from current state
         """
+        self.count_nnet = 0;
+        beg = time.time()
         root = Node(None, value=1)
         self.game = copy.deepcopy(game)
 
@@ -174,6 +178,8 @@ class TreeAgent(Agent):
 
         # TODO
         actions = sorted(root.children, key=lambda item: item.value, reverse=True)
+        print('Count of nnet runs =', self.count_nnet)
+        print('Time elapsed', time.time() - beg, 'seconds')
         return actions[0].pos
 
 
@@ -189,6 +195,7 @@ class TreeAgent(Agent):
         if cur.is_leaf():
             state = self.game.state()
             probs = self.model.predict(state.reshape((1, 15, 15, 4))).reshape((15, 15))
+            self.count_nnet += 1;
 
             # get only valid nodes
             valid_actions = probs * self.game.valid()

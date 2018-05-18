@@ -178,8 +178,8 @@ class TreeAgent(Agent):
 
         # TODO
         actions = sorted(root.children, key=lambda item: item.value, reverse=True)
-        print('Count of nnet runs =', self.count_nnet)
-        print('Time elapsed', time.time() - beg, 'seconds')
+        # print('Count of nnet runs =', self.count_nnet)
+        # print('Time elapsed', time.time() - beg, 'seconds')
         return actions[0].pos
 
 
@@ -187,11 +187,11 @@ class TreeAgent(Agent):
         """
         return action to take from this node
         """
-
+ 
         if depth == self.max_depth:
             return
 
-        # expand tree        
+        # expand tree
         if cur.is_leaf():
             state = self.game.state()
             probs = self.model.predict(state.reshape((1, 15, 15, 4))).reshape((15, 15))
@@ -229,46 +229,21 @@ class TreeAgent(Agent):
             cur.max_child_value = child.value
 
 
-
-class NikitaAgent(Agent):
-    def __init__(self, modelfile, color=renju.Player.BLACK, name='Nikita'):
-        self._name = name
-        self._color = color
-        self._model = keras.models.load_model(modelfile)
-
+class MCTSAgent:
+    def __init__(self):
+        pass
 
     def name(self):
         return self._name
 
-
     def color(self):
         return self._color
-
 
     def is_human(self):
         return False
 
-
     def get_pos(self, game):
-        state = numpy.zeros((15, 15, 3))
-        if self._color == renju.Player.BLACK:
-            state[..., 2] = 1
+        pass
 
-        player_positions = game.positions(player=self._color)
-        opponent_positions = game.positions(player=self._color.another())
-
-        state[..., 0] = game.board(player=self._color)
-        state[..., 1] = game.board(player=self._color.another())
-
-        input_board = numpy.array([state])
-        prob = self._model.predict(input_board)
-        prob = prob.reshape((15, 15))
-
-        ind = numpy.unravel_index(numpy.argsort(prob, axis=None)[::-1], (15, 15))
-        pos = []
-        for i in range(15 * 15):
-            pos.append((ind[0][i], ind[1][i]))
-
-        for p in pos:
-            if game.is_possible_move(p):
-                return p
+    def search(self):
+        pass

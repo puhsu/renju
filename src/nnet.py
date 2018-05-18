@@ -31,6 +31,7 @@ class DataGenerator:
             for game in self.games:
                 res, *moves = game.split()
                 state = numpy.zeros((15, 15, 4), dtype=numpy.uint8)
+                
 
                 if res == 'white':
                     player = -1
@@ -39,6 +40,8 @@ class DataGenerator:
                     player = 1
                 else:
                     continue
+
+                
 
                 for move in moves:
                     i, j = util.to_pos(move)
@@ -150,10 +153,8 @@ class PolicyNetwork:
 
         x = Conv2D(32, (3, 3), padding='same')(x)
         x = Conv2D(32, (3, 3), padding='same')(x)
-        x = Conv2D(32, (3, 3), padding='same')(x)
         x = BatchNormalization()(Activation('relu')(x))
         
-        x = Conv2D(64, (3, 3), padding='same')(x)
         x = Conv2D(64, (3, 3), padding='same')(x)
         x = Conv2D(64, (3, 3), padding='same')(x)
         x = BatchNormalization()(Activation('relu')(x))
@@ -181,13 +182,71 @@ class PolicyNetwork:
                                  validation_data=validation,
                                  workers=3,
                                  verbose=1)
-    
-        
+
+
+class RolloutNet:
+    def __init__(self, args):
+        self.args = args
+
+        if self.args.modelfile:
+            self.model = keras.models.load_model(self.args.modelfile)
+        else:
+            self.build_network()
+
+        self.callbacks = []
+
+        if self.args.logdir:
+            self.callbacks.append(keras.callbacks.TensorBoard(log_dir=self.args.logdir, batch_size=10))
+
+        if self.args.checkpoints:
+            filepath = self.args.checkpoints + '{epoch:02d}.hdf5'
+            self.callbacks.append(keras.callbacks.ModelCheckpoint(filepath, period=1))
+
+
+    def build_network(self):
+        keras.backend.clear_session()
+        self.input_boards = Input(shape=(15, 15, 4))
+        x = Conv2D(16, (3, 3), padding='same')(self.input_boards)
+        x = Conv2D(16, (3, 3), padding='same')(x)
+        x = BatchNormalization()(Activation('relu')(x))
+
+        x = Conv2D(32, (3, 3), padding='same')(x)
+        x = Conv2D(32, (3, 3), padding='same')(x)
+        x = BatchNormalization()(Activation('relu')(x))        
+        x = Conv2D(1, (1, 1), padding='same')(x)
+
+        self.predictions = Activation('softmax')(Reshape((225,))(x))
+        self.model = Model(inputs=self.input_boards,
+                           outputs=self.predictions)
+
+
+
+        self.model.compile(optimizer=keras.optimizers.Adam(),
+                           loss='sparse_categorical_crossentropy',
+                           metrics=['accuracy'])
+
+
+    def train(self, train_generator, validation=None, nb_epochs=1, initial_epoch=0):
+        '''
+        Train for nb_epochs
+        '''
+        self.model.fit_generator(train_generator.generate(),
+                                 steps_per_epoch=train_generator.steps_per_epoch,
+                                 epochs=nb_epochs,
+                                 initial_epoch=initial_epoch,
+                                 callbacks=self.callbacks,
+                                 validation_data=validation,
+                                 workers=3,
+                                 verbose=1)
+
+
+
+
 if __name__ == '__main__':
     args=util.dotdict({
-        'modelfile': 'models/model03.hdf5',
+        'modelfile': None,
         'logdir': 'tensorboard_logs/',
-        'checkpoints': 'models/model.augmentations.',
+        'checkpoints': 'models/model.policy.',
         'valid_size': 10000
     })
 
@@ -243,9 +302,22 @@ if __name__ == '__main__':
     print(f'DONE preprocessing validation data. States count = {val_len}')
 
     # train model
-    train_generator = DataGenerator(games, states_count, batch_size=300, augmentations=True)
     policy = PolicyNetwork(args)
-    policy.train(train_generator, 
-                 validation=(x_validation, y_validation), 
-                 nb_epochs=3)
+
+    train_generator = DataGenerator(games, states_count, batch_size=300, augmentations=True)
+    policy.train(train_generator,
+                 validation=(x_validation, y_validation),
+                 nb_epochs=1)
+
+    train_generator = DataGenerator(games, states_count, batch_size=600, augmentations=True)
+    policy.train(train_generator,
+                 validation=(x_validation, y_validation),
+                 nb_epochs=1,
+                 initial_epoch=1)
+
+    train_generator = DataGenerator(games, states_count, batch_size=1200, augmentations=True)
+    policy.train(train_generator,
+                 validation=(x_validation, y_validation),
+                 nb_epochs=1,
+                 initial_epoch=2)
 

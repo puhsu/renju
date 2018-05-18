@@ -41,7 +41,7 @@ public:
     }
 
     ~Tree() {
-
+        
     }
 
     pos_t get_pos(Game game) {

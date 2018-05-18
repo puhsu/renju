@@ -102,7 +102,7 @@ class DataGenerator:
             max_y = max(max_y, pos[0])
     
         # do shift
-        if numpy.random.uniform(0, 1) < .5:
+        if numpy.random.uniform(0, 1) < .8:
             x_shift = numpy.random.randint(-min_x, 15 - max_x)
             y_shift = numpy.random.randint(-min_y, 15 - max_y)
             state = numpy.roll(state, (y_shift, x_shift), axis=(0, 1))
@@ -171,13 +171,14 @@ class PolicyNetwork:
                            metrics=['accuracy'])
 
 
-    def train(self, train_generator, validation=None, nb_epochs=1):
+    def train(self, train_generator, validation=None, nb_epochs=1, initial_epoch=0):
         '''
         Train for nb_epochs
         '''
         self.model.fit_generator(train_generator.generate(),
                                  steps_per_epoch=train_generator.steps_per_epoch,
                                  epochs=nb_epochs,
+                                 initial_epoch=initial_epoch,
                                  callbacks=self.callbacks,
                                  validation_data=validation,
                                  workers=3,
@@ -244,7 +245,7 @@ class RolloutNet:
 
 if __name__ == '__main__':
     args=util.dotdict({
-        'modelfile': None,
+        'modelfile': 'models/model.policy.01.hdf5',
         'logdir': 'tensorboard_logs/',
         'checkpoints': 'models/model.policy.',
         'valid_size': 10000
@@ -304,10 +305,10 @@ if __name__ == '__main__':
     # train model
     policy = PolicyNetwork(args)
 
-    train_generator = DataGenerator(games, states_count, batch_size=300, augmentations=True)
-    policy.train(train_generator,
-                 validation=(x_validation, y_validation),
-                 nb_epochs=1)
+    #train_generator = DataGenerator(games, states_count, batch_size=300, augmentations=True)
+    #policy.train(train_generator,
+    #             validation=(x_validation, y_validation),
+    #             nb_epochs=1)
 
     train_generator = DataGenerator(games, states_count, batch_size=600, augmentations=True)
     policy.train(train_generator,

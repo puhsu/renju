@@ -266,7 +266,7 @@ if __name__ == '__main__':
         if res == 'white':
             states_count += int(numpy.floor(len(moves) / 2))
 
-    print('DONE reading training data')
+    print('DONE reading training data. Total states: {states_count}')
 
 
     x_validation = []
@@ -313,12 +313,10 @@ if __name__ == '__main__':
     train_generator = DataGenerator(games, states_count, batch_size=600, augmentations=True)
     policy.train(train_generator,
                  validation=(x_validation, y_validation),
-                 nb_epochs=1,
-                 initial_epoch=1)
+                 nb_epochs=1)
 
     train_generator = DataGenerator(games, states_count, batch_size=1200, augmentations=True)
     policy.train(train_generator,
                  validation=(x_validation, y_validation),
-                 nb_epochs=1,
-                 initial_epoch=2)
+                 nb_epochs=1)
 

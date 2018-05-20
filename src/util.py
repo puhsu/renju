@@ -42,11 +42,12 @@ class DataGenerator:
 
                 
 
-                for move in moves:
+                for n, move in enumerate(moves):
                     i, j = gomoku.util.to_pos(move)
                     
                     if player == 1:
-                        if self.augmentations:
+                        # augment only in the mid/end game (to not trigger at the beggining)
+                        if self.augmentations and n > 10:
                             aug_state, (y, x) = self.augment_state(numpy.copy(state), (i, j)) 
                             x_batch.append(aug_state)
                             y_batch.append(y * 15 + x)

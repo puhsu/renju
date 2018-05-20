@@ -118,3 +118,5 @@ ENV/
 *.npz
 *.npy
 /src/cpp_test/libs
+tensorboard/
+cpp_test/libs/

@@ -218,15 +218,15 @@ if __name__ == '__main__':
     #run_test(agent.DummyAgent(color=renju.Player.BLACK),
     #         agent.DummyAgent(color=renju.Player.WHITE),
     #         games_count = 1000)
-    sl_white = agent.SLAgent(modelfile='models/model.augmentations.01.hdf5', color=renju.Player.WHITE)
-    sl_black = agent.SLAgent(modelfile='models/model03.hdf5', color=renju.Player.BLACK)
+    #sl_white = agent.SLAgent(modelfile='models/model.augmentations.01.hdf5', color=renju.Player.WHITE)
+    #sl_black = agent.SLAgent(modelfile='models/model.policy.04.hdf5', color=renju.Player.BLACK)
 
-    tree_white = agent.TreeAgent(modelfile='models/model03.hdf5', max_depth=10, num_iters=300, color=renju.Player.WHITE)
-    tree_black = agent.TreeAgent(modelfile='models/model.augmentations.01.hdf5', max_depth=10, num_iters=500, color=renju.Player.BLACK)
+    #tree_white = agent.TreeAgent(modelfile='models/model03.hdf5', max_depth=10, num_iters=300, color=renju.Player.WHITE)
+    tree_black = agent.TreeAgent(modelfile='models/model.policy.04.hdf5', max_depth=10, num_iters=500, color=renju.Player.BLACK)
 
     human_white = agent.HumanAgent(color=renju.Player.WHITE)
     human_black = agent.HumanAgent(color=renju.Player.BLACK)
 
     run_gui(tree_black, human_white)
-    # run_test(sl_black, sl_white, games_count=10)
+    # run_test(sl_black, sl_white, games_count=100)
 

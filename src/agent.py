@@ -133,7 +133,7 @@ class Node:
 
     def is_leaf(self):
         return self.children is None
-
+ 
 
 class TreeAgent(Agent):
     """
@@ -178,8 +178,8 @@ class TreeAgent(Agent):
 
         # TODO
         actions = sorted(root.children, key=lambda item: item.value, reverse=True)
-        # print('Count of nnet runs =', self.count_nnet)
-        # print('Time elapsed', time.time() - beg, 'seconds')
+        print('Count of nnet runs =', self.count_nnet)
+        print('Time elapsed', time.time() - beg, 'seconds')
         return actions[0].pos
 
 
@@ -227,6 +227,8 @@ class TreeAgent(Agent):
         if depth and child.value > cur.max_child_value:
             cur.value += child.value - cur.max_child_value
             cur.max_child_value = child.value
+
+
 
 
 class MCTSAgent:

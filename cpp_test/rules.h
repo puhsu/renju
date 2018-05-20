@@ -216,6 +216,7 @@ public:
         }
     }
 
+
     Game& operator=(Game other)
     {
         std::swap(result, other.result);
@@ -224,6 +225,7 @@ public:
         std::swap(positions, other.positions);
         return *this;
     }
+
     
     bool is_possible_move(int i, int j) const {
         bool row = 0 <= i && i < height;
@@ -251,13 +253,16 @@ public:
         return result;
     }
 
+
     Color get_player() const {
         return player;
     }
 
+
     EigenArray& get_board() {
         return board;
     }
+
 
     Tensor get_state() const {
         Tensor state = Tensor(tensorflow::DT_FLOAT, {1, 15, 15, 4});
@@ -277,34 +282,42 @@ public:
                 }
             }
         }
-
-        // std::cout << tensor_map.chip(0, 3).reshape(Eigen::array<long,2>{15,15}) << std::endl;
-        // std::cout << tensor_map.chip(1, 3).reshape(Eigen::array<long,2>{15,15}) << std::endl;
-        // std::cout << tensor_map.chip(2, 3).reshape(Eigen::array<long,2>{15,15}) << std::endl;
-        // std::cout << tensor_map.chip(3, 3).reshape(Eigen::array<long,2>{15,15}) << std::endl;
-
         return state;
     }
+
 
     int move_n() const {
         return positions.size();
     }
 
+
     pos_t last_pos() const {
         return positions[positions.size() - 1];
     }
 
+
     operator bool() const {
         return get_result() == NONE && move_n() < width * height;
     }
+
 
     void print_board() const {
         std::cout << board << std::endl;
     }
 };
 
-Game wait_for_game_update() {
-    std::string data;
-    std::getline(std::cin, data);
-    return Game(data);
-}
+namespace backend {
+
+    Game wait_for_game_update() {
+        std::string data;
+        std::getline(std::cin, data);
+        return Game(data);
+    }
+    
+    void move(int i, int j) {
+        std::cout << to_move({i, j}) << "\n";
+        std::cout.flush();
+    }
+
+};
+

@@ -1,0 +1,111 @@
+#!/usr/local/bin/python3
+import argparse
+import numpy
+import util
+
+
+def build_rollout_network():
+    """
+    Build and compile simple linear model
+    """
+    from keras.layers import Input, Dense, Reshape
+    from keras.layers import Activation
+    from keras.models import Model
+    from keras.optimizers import Adam
+
+    input_boards = Input(shape=(15, 15, 4), name='input_boards')
+    predictions = Activation('softmax', name='predictions')(Dense(225, input_shape=((15*15*4,)))(Reshape((15*15*4,))(input_boards)))
+    model = Model(inputs=input_boards,
+                  outputs=predictions)
+
+    model.compile(optimizer=Adam(),
+                  loss='sparse_categorical_crossentropy',
+                  metrics=['accuracy'])
+
+    return model
+
+
+def build_policy_network():
+    """
+    Build and compile policy network
+    """
+    from keras.layers import Input, Conv2D, Reshape
+    from keras.layers import Activation, BatchNormalization
+    from keras.models import Model
+    from keras.optimizers import Adam
+
+    input_boards = Input(shape=(15, 15, 4), name='input_boards')
+    x = Conv2D(16, (3, 3), padding='same')(input_boards)
+    x = Conv2D(16, (3, 3), padding='same')(x)
+    x = BatchNormalization()(Activation('relu')(x))
+    
+    x = Conv2D(32, (3, 3), padding='same')(x)
+    x = Conv2D(32, (3, 3), padding='same')(x)
+    x = BatchNormalization()(Activation('relu')(x))
+    
+    x = Conv2D(64, (3, 3), padding='same')(x)
+    x = Conv2D(64, (3, 3), padding='same')(x)
+    x = BatchNormalization()(Activation('relu')(x))
+    x = Conv2D(1, (1, 1), padding='same')(x)
+    
+    predictions = Activation('softmax', name='predictions')(Reshape((225,))(x))
+    model = Model(inputs=input_boards,
+                  outputs=predictions)
+
+    model.compile(optimizer=Adam(),
+                  loss='sparse_categorical_crossentropy',
+                  metrics=['accuracy'])
+
+    return model
+
+
+def run_training():
+    parser = argparse.ArgumentParser(description='Script to train networks on existing games data')
+    parser.add_argument("model", help="Choose model to train", choices=['rollout', 'policy'])
+    parser.add_argument("out_directory", help="Path to directory where the model params and metadata will be saved after each epoch.")
+    parser.add_argument("--initial_model", metavar="", help="Path to keras model file to load")
+    parser.add_argument("--epochs", metavar="", help="Number of epochs to train (Default: 1)", type=int, default=1)
+    parser.add_argument("--batch_size", metavar="", help="Size of batch (Default: 300)", type=int, default=300)
+    parser.add_argument("--augmentations", "-a", help="Turn on data augmentations", default=False, action="store_true")
+    parser.add_argument("--logdir", metavar="", help="Path to directory where tensorboard logs are saved")
+    parser.add_argument("--verbose", "-v", help="Turn on verbose mode", default=False, action="store_true")
+    args = parser.parse_args()
+    
+    # load model
+    import keras
+    keras.backend.clear_session()
+
+    if args.initial_model:
+        model = keras.models.load_model(args.initial_model)
+    elif args.model == 'rollout':
+        model = build_rollout_network()
+    else:
+        model = build_policy_network()
+
+    # setup callbacks
+    callbacks = []
+    filepath = args.out_directory + '/rollout.{epoch:02d}-{val_acc:.2f}.hdf5'
+    callbacks.append(keras.callbacks.ModelCheckpoint(filepath))
+    
+    if args.logdir:
+        callbacks.append(keras.callbacks.TensorBoard(log_dir=args.logdir))
+    
+    # load training and validation data
+    games, states_count = util.load_training_data("data/train.renju", verbose=args.verbose)
+    validation_data = util.load_validation_data("data/test.renju", verbose=args.verbose)
+    train_generator = util.DataGenerator(games, states_count, 
+                                         batch_size=args.batch_size, 
+                                         augmentations=args.augmentations)
+
+    # run model training
+    model.fit_generator(train_generator.generate(),
+                        steps_per_epoch=train_generator.steps_per_epoch,
+                        epochs=args.epochs,
+                        callbacks=callbacks,
+                        validation_data=validation_data,
+                        workers=3,
+                        verbose=args.verbose)
+
+
+if __name__ == "__main__":
+    run_training()

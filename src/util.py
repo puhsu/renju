@@ -47,8 +47,8 @@ class DataGenerator:
                     
                     if player == 1:
                         # augment only in the mid/end game (to not trigger at the beggining)
-                        if self.augmentations and n > 10:
-                            aug_state, (y, x) = self.augment_state(numpy.copy(state), (i, j)) 
+                        if self.augmentations:
+                            aug_state, (y, x) = self.augment_state(numpy.copy(state), (i, j), n) 
                             x_batch.append(aug_state)
                             y_batch.append(y * 15 + x)
                         else:
@@ -82,7 +82,7 @@ class DataGenerator:
                 self.rotation_map[k][i, j] = pos // 15, pos % 15
 
 
-    def augment_state(self, state, pos):
+    def augment_state(self, state, pos, n):
         '''
         Randomly shift and/or rotate and/or flip
         '''
@@ -102,7 +102,7 @@ class DataGenerator:
             max_y = max(max_y, pos[0])
     
         # do shift
-        if numpy.random.uniform(0, 1) < .8:
+        if numpy.random.uniform(0, 1) < .4 and n > 10:
             x_shift = numpy.random.randint(-min_x, 15 - max_x)
             y_shift = numpy.random.randint(-min_y, 15 - max_y)
             state = numpy.roll(state, (y_shift, x_shift), axis=(0, 1))

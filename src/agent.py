@@ -98,8 +98,12 @@ class BackendAgent(Agent):
     def is_human(self):
         return False
 
+    def terminate(self):
+        self._backend.terminate()
+
     def send_game_to_backend(self, game):
         data = game.dumps().encode()
+        print("sending string:", data)
         self._backend.stdin.write(data + b'\n')
         self._backend.stdin.flush()
 

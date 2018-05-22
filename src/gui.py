@@ -222,7 +222,7 @@ if __name__ == '__main__':
     #run_test(agent.DummyAgent(color=gomoku.rules.Player.BLACK),
     #         agent.DummyAgent(color=gomoku.rules.Player.WHITE),
     #         games_count = 1000)
-    #sl_white = agent.SLAgent(modelfile='models/model.augmentations.01.hdf5', color=gomoku.rules.Player.WHITE)
+    sl_white = agent.SLAgent(modelfile='models/model.augmentations.01.hdf5', color=gomoku.rules.Player.WHITE)
     #sl_black = agent.SLAgent(modelfile='models/rollout.01-0.19.hdf5', color=gomoku.rules.Player.BLACK)
 
 
@@ -235,6 +235,7 @@ if __name__ == '__main__':
     backend_black = agent.BackendAgent('cpp_test/build/gomoku', color=gomoku.rules.Player.BLACK)
     #backend_white = agent.BackendAgent('cpp_test/build/gomoku', color=gomoku.rules.Player.WHITE)
 
-    run_gui(backend_black, human_white)
-    # run_test(sl_black, sl_white, games_count=100)
+    run_gui(backend_black, sl_white)
+    backend_black.terminate()
+    #run_test(backend_black, sl_white, games_count=100)
 

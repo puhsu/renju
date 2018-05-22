@@ -5,6 +5,8 @@
 #include <random>
 #include <memory>
 #include <unistd.h>
+#include <algorithm>
+#include <signal.h>
 
 #include "rules.h"
 #include "logger.h"
@@ -15,6 +17,7 @@ using namespace std::chrono;
 // global tf sessions used inside mcts
 Session *policy_session;
 Session *rollout_session;
+
 
 
 // Class that represents one node in the MCTS
@@ -36,17 +39,17 @@ private:
     // algorithm parameters
     const float EPS = 1e-6;
     const float Cpuct = 1;
-    
+
 public:
     /*
-     *  Default constructor for creating a Node 
+     *  Default constructor for creating a Node
      */
-    TreeNode(Color c, std::shared_ptr<TreeNode> p = nullptr) 
-        : value(0)
-        , leaf(true)
-        , visits_count(0)
-        , parent(p)
-        , color(c)
+    TreeNode(Color c, std::shared_ptr<TreeNode> p = nullptr)
+            : value(0)
+            , leaf(true)
+            , visits_count(0)
+            , parent(p)
+            , color(c)
     {
         children.resize(225);
         probabilities.resize(225);
@@ -75,6 +78,9 @@ public:
 
 
     float get_value() const {
+        if (!visits_count) {
+            return value;
+        }
         return value / visits_count;
     }
 
@@ -83,9 +89,9 @@ public:
         return visits_count;
     }
 
-    
+
     // Generate new childs based on the given game state
-    // State is passed from within MCTS class while 
+    // State is passed from within MCTS class while
     // performing simulation
 
     void expand(const Game& game) {
@@ -96,7 +102,7 @@ public:
         leaf = false;
         // run policy network
         auto pred = run_model(policy_session, game.get_state());
-        
+
         // flatten output
         Eigen::array<Eigen::DenseIndex, 1> dims{{15 * 15}};
         Eigen::Tensor<float, 1, Eigen::RowMajor> flat_pred = pred.reshape(dims);
@@ -119,39 +125,41 @@ public:
     }
 
 
-    // Select action from current node according 
+    // Select action from current node according
     // to the upper confidence bound: argmax Val + Prob/N
     // Note: not called from leaf nodes
 
-    int select_ucb() const {
+    int select_ucb(const Game& game) const {
         // ensure it isn't leaf node
         assert(!is_leaf());
 
-        int selected = 0;
-        float best_value = std::numeric_limits<float>::min();
+        int selected = -1;
+        float best_value = -std::numeric_limits<float>::max();
 
+        //std::cout << "Current move_number " << game.move_n() << "\n";
         for (int i = 0; i < 225; ++i) {
             // check that we have such child
-            if (children[i]) {
+            if (children[i] != nullptr && game.is_possible_move(i / 15, i % 15)) {
                 // calculate upper confidence bound
-                float u = Cpuct * probabilities[i] * std::sqrt(get_visits_count()) 
+                float u = Cpuct * probabilities[i] * std::sqrt(get_visits_count())
                           / (1 + children[i]->get_visits_count());
 
-                float ucb = children[i]->value + u;
-
-                if (ucb > best_value) {
+                float ucb = children[i]->get_value() + u;
+                //std::cout << "UCB=" << ucb << "\n";
+                if (ucb >= best_value) {
                     selected = i;
                     best_value = ucb;
                 }
             }
         }
-
+        //lg << selected;
         return selected;
     }
 
 
     // UTILITY/DEBUG FUNCTIONS
     /*
+     *
      *  Count nodes in subtree with this node as its root.
      */
     int count_of_nodes() const {
@@ -176,6 +184,7 @@ class MCTS {
 private:
     std::shared_ptr<TreeNode> root;    // curreent root node will change it overtime, but the subtree will remain unchanged through the game
     milliseconds timeout;              // time limit to make one move
+    int rollout_depth;
     Game state;                        // copy of the game state provided by the backend
 
     float get_reward(Color node_color, Color winner) const {
@@ -193,7 +202,7 @@ private:
         system_clock::time_point old=system_clock::now();
         int sim_count = 0;
         // do simulations while have time
-        while (duration_cast<milliseconds>(system_clock::now()-old) < timeout) {
+        while (duration_cast<milliseconds>(system_clock::now()-old) < timeout || sim_count < 100) {
             ++sim_count;
             // Create deep copy of game state to do our work in it
             Game simulation_state = state;
@@ -201,13 +210,18 @@ private:
             /*
              *  Selection
              */
-        
+
+
             // goto leaf node
             std::shared_ptr<TreeNode> selected = root;
             while (!selected->is_leaf()) {
-                int action = selected->select_ucb();
+                int action = selected->select_ucb(simulation_state);
                 int i = action / 15, j = action % 15;
-
+                if (action == -1) {
+                    std::cout << "Error occured on simulation number " << sim_count << "\n";
+                    std::cout << simulation_state.move_n() << std::endl;
+                    exit(0);
+                }
                 simulation_state.move(i, j);
                 selected = selected->children[action];
             }
@@ -218,7 +232,7 @@ private:
                 continue;
             }
 
-            
+
             /*
              *  Expansion
              */
@@ -245,13 +259,15 @@ private:
 
     // do rollout and return the winner
     Color rollout(Game state) {
-        while (state) {
+        int depth = 0;
+        while (state && depth < rollout_depth) {
+            ++depth;
             auto pred = run_model(rollout_session, state.get_state());
 
             // flatten output
             Eigen::array<Eigen::DenseIndex, 1> dims{{15 * 15}};
             Eigen::Tensor<float, 1, Eigen::RowMajor> flat_pred = pred.reshape(dims);
-            
+
             // select only valid actions
             std::vector<int> actions;
             std::vector<float> prob;
@@ -262,17 +278,17 @@ private:
                 }
             }
 
-            // get top k actions
-            int k = 5;
+            // get at most top k actions
+            std::size_t k = 5;
             std::vector<int> top_actions;
             std::vector<float> top_prob;
-            
+
             std::priority_queue<std::pair<float, int>> q;
             for (int i = 0; i < prob.size(); ++i) {
                 q.push({prob[i], i});
             }
-        
-            for (int i = 0; i < k; ++i) {
+
+            for (int i = 0; i < std::min(k, q.size()); ++i) {
                 int ki = q.top().second;
                 top_actions.push_back(actions[ki]);
                 top_prob.push_back(prob[ki]);
@@ -284,7 +300,7 @@ private:
             std::mt19937 generator(rd());
             std::discrete_distribution<int> distribution(top_prob.begin(), top_prob.end());
             int ind = distribution(generator);
-            state.move(top_actions[ind] / 15, top_actions[ind] % 15);
+            state.move(top_actions[0] / 15, top_actions[0] % 15);
         }
 
         return state.get_result();
@@ -293,14 +309,15 @@ private:
 public:
     int expanded = 0;
 
-    MCTS(milliseconds t) 
-        : timeout(t)
+    MCTS(milliseconds t, int d)
+            : timeout(t)
+            , rollout_depth(d)
     {
     }
 
     // Use this function to update tree after opponent has moved
     // param last opponent move
-    void update_state(Game new_state) {
+    void update_state(Game& new_state) {
         state = new_state;
         pos_t opponent_pos;
         int opponent_action;
@@ -313,7 +330,7 @@ public:
 
         // we have this node in our tree
         // just update the root and save subtree
-        if (state.move_n() && root->children[opponent_action]) {
+        if (state.move_n() && root && root->children[opponent_action]) {
             root = root->children[opponent_action];
         } else {
             root = std::make_shared<TreeNode>(state.get_player());
@@ -342,30 +359,7 @@ public:
 };
 
 
-int main(int argc, char *argv[]) {
-    // load models
-    load_model(project_dir + "models/model.policy.04.pb", &policy_session);
-    load_model(project_dir + "models/model.policy.04.pb", &rollout_session);
-
-    ige::FileLogger log ("1.0", "logfile.txt");
-
-    MCTS tree(milliseconds{1000});
-
-    while (true) {
-        Game state = backend::wait_for_game_update();
-        tree.update_state(state);
-        pos_t pos = tree.get_pos();
-        backend::send_pos_to_backend(pos.first, pos.second);
-        
-
-
-        //Game game = backend::wait_for_game_update();
-        //tree.update_state(game);
-        //pos_t pos = tree.get_pos();
-        //std::cout << "suka imtashrtoierst\n";
-        //backend::move(pos.first, pos.second);
-    }
-
+void signal_handler(int signum) {
     // Free any resources used by the sessions
     Status status = policy_session->Close();
     if (!status.ok()) {
@@ -378,6 +372,27 @@ int main(int argc, char *argv[]) {
         std::cerr << status.ToString() << "\n";
         exit(1);
     }
+    exit(0);
+}
 
-    return 0;
+
+int main(int argc, char *argv[]) {
+    // load models
+    load_model(project_dir + "models/model03tf.pb", &policy_session);
+    load_model(project_dir + "models/model.policy.04.pb", &rollout_session);
+
+    struct sigaction action = {};
+    action.sa_handler = signal_handler;
+    sigemptyset(&action.sa_mask);
+    sigaction(SIGTERM, &action, NULL);
+
+
+    // Start the game with backend
+    MCTS tree(milliseconds{3000}, 10);
+    while (true) {
+        Game state = backend::wait_for_game_update();
+        tree.update_state(state);
+        pos_t pos = tree.get_pos();
+        backend::send_pos_to_backend(pos.first, pos.second);
+    }
 }

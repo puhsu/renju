@@ -77,7 +77,7 @@ namespace ige {
             // No need for std::string objects here
             template <typename T>
             friend FileLogger &operator << (FileLogger &logger, const T& data) {
-                logger.myFile << data;
+                logger.myFile << data << std::endl;
                 return logger;
 
             }

@@ -8,6 +8,8 @@
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/cc/framework/ops.h"
 
+#include "logger.h"
+
 using tensorflow::Session;
 using tensorflow::Status;
 using tensorflow::Tensor;
@@ -16,6 +18,8 @@ typedef Eigen::Array<float, 15, 15, Eigen::RowMajor> EigenArray;
 typedef Eigen::Tensor<float, 2, Eigen::RowMajor> EigenTensor;
 typedef std::pair<int, int> pos_t;
 
+
+ige::FileLogger lg ("1.0", "logfile.txt");
 
 // GAME UTIL FUNCTIONS
 enum Color {
@@ -210,9 +214,16 @@ public:
 
         for (auto m : moves) {
             pos_t pos = to_pos(m);
-            std::cout << pos.first << ", " << pos.second << "\n";
             move(pos.first, pos.second);
         }
+    }
+
+    // Copy constructor : deepcopy
+    Game(const Game& other) {
+        result = other.result;
+        player = other.player;
+        board = other.board;
+        positions = other.positions;
     }
 
 
@@ -227,13 +238,16 @@ public:
 
     
     bool is_possible_move(int i, int j) const {
-        bool row = 0 <= i && i < height;
-        bool col = 0 <= j && j < width;
+        bool row = (0 <= i) && (i < height);
+        bool col = (0 <= j) && (j < width);
         return row && col && !board(i, j);
     }
 
 
     void move(int i, int j) {
+        if (!is_possible_move(i, j)) {
+            lg << i << j;
+        }
         assert(is_possible_move(i, j));
         
         positions.push_back({i, j});
@@ -298,7 +312,7 @@ public:
     }
 
 
-    operator bool() const {
+    explicit operator bool() const {
         return get_result() == NONE && move_n() < width * height;
     }
 

@@ -1,5 +1,7 @@
 # Current project
 models
+.idea
+cmake-build-debug
 
 # macOS junk
 .DS_Store
@@ -119,4 +121,6 @@ ENV/
 *.npy
 /src/cpp_test/libs
 tensorboard/
+
+
 cpp_test/libs/

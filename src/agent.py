@@ -3,10 +3,10 @@ import random
 import keras
 import numpy
 import copy
-import sys
+import subprocess
 
-import util
-import renju
+import gomoku.util
+import gomoku.rules
 import time
 
 
@@ -29,7 +29,7 @@ class Agent(metaclass=abc.ABCMeta):
 
 
 class DummyAgent(Agent):
-    def __init__(self, color=renju.Player.BLACK, name='Random'):
+    def __init__(self, color=gomoku.rules.Player.BLACK, name='Random'):
         self._name = name
         self._color = color
 
@@ -47,7 +47,7 @@ class DummyAgent(Agent):
 
 
     def get_pos(self, game):
-        positions = util.list_positions(game._board, renju.Player.NONE)
+        positions = gomoku.util.list_positions(game._board, gomoku.rules.Player.NONE)
         pos = tuple(random.choice(positions))
         return pos
 
@@ -55,7 +55,7 @@ class DummyAgent(Agent):
 
 
 class HumanAgent(Agent):
-    def __init__(self, color=renju.Player.BLACK, name='Human'):
+    def __init__(self, color=gomoku.rules.Player.BLACK, name='Human'):
         self._name = name
         self._color = color
         self.pos = None
@@ -78,9 +78,44 @@ class HumanAgent(Agent):
 
 
 
+class BackendAgent(Agent):
+    def __init__(self, backend, name='BackendAgent', color=gomoku.rules.Player.BLACK, **kvargs):
+        self._name = name
+        self._color = color
+        self._backend = subprocess.Popen(
+            backend.split(),
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            **kvargs
+        )
+
+    def name(self):
+        return self._name
+
+    def color(self):
+        return self._color
+
+    def is_human(self):
+        return False
+
+    def send_game_to_backend(self, game):
+        data = game.dumps().encode()
+        self._backend.stdin.write(data + b'\n')
+        self._backend.stdin.flush()
+
+    def wait_for_backend_move(self):
+        data = self._backend.stdout.readline().rstrip()
+        print(data)
+        return data.decode()
+
+    def get_pos(self, game):
+        self.send_game_to_backend(game)
+        pos = gomoku.util.to_pos(self.wait_for_backend_move())
+        return pos
+
 
 class SLAgent(Agent):
-    def __init__(self, modelfile, color=renju.Player.BLACK, name='SL agent'):
+    def __init__(self, modelfile, color=gomoku.rules.Player.BLACK, name='SL agent'):
         self._name = name
         self._color = color
         self._model = keras.models.load_model(modelfile)
@@ -100,7 +135,7 @@ class SLAgent(Agent):
 
     def get_pos(self, game):
         state = numpy.zeros((15, 15, 4))
-        if self._color == renju.Player.BLACK:
+        if self._color == gomoku.rules.Player.BLACK:
             state[..., 2] = 1
 
         player_positions = game.positions(player=self._color)
@@ -140,7 +175,7 @@ class TreeAgent(Agent):
     Agent that plays few steps ahead with policy network 
     and chooses most probable path
     """
-    def __init__(self, modelfile, max_depth=6, max_actions=4, num_iters=100, color=renju.Player.BLACK, name='Simple tree'):
+    def __init__(self, modelfile, max_depth=6, max_actions=4, num_iters=100, color=gomoku.rules.Player.BLACK, name='Simple tree'):
         self._name = name
         self._color = color
 
@@ -169,6 +204,7 @@ class TreeAgent(Agent):
         return most probable actions from current state
         """
         self.count_nnet = 0;
+        self.count_nodes = 1;
         beg = time.time()
         root = Node(None, value=1)
         self.game = copy.deepcopy(game)
@@ -203,6 +239,7 @@ class TreeAgent(Agent):
             # create max_actions children
             idx = valid_actions.ravel().argsort()[::-1][:self.max_actions]
             actions = numpy.column_stack(numpy.unravel_index(idx, (15, 15)))
+            self.count_nodes += len(actions)
 
             # normalize probabilities
             probabilities = numpy.array([valid_actions[i, j] for (i, j) in actions])

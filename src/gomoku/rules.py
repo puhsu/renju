@@ -1,6 +1,6 @@
 import enum
 import numpy
-import util
+import gomoku.util
 
 
 class Player(enum.IntEnum):
@@ -76,12 +76,12 @@ class Game:
         return self._positions[begin::2]
 
     def dumps(self):
-        return ' '.join(map(util.to_move, self._positions))
+        return ' '.join(map(gomoku.util.to_move, self._positions))
 
     @staticmethod
     def loads(dump):
         game = Game()
-        for pos in map(util.to_pos, dump.split()):
+        for pos in map(gomoku.util.to_pos, dump.split()):
             game.move(pos)
         return game
 
@@ -97,7 +97,7 @@ class Game:
         self._positions.append(pos)
         self._board[pos] = self._player
 
-        if not self._result and util.check(self._board, pos):
+        if not self._result and gomoku.util.check(self._board, pos):
             self._result = self._player
             return
 

@@ -2,14 +2,14 @@ import tkinter
 import tkinter.font
 import math
 
-import renju
+import gomoku.rules
 import agent
 
 
 class GomokuUI(tkinter.Frame):
     def __init__(self, master=None, black=None, white=None, timeout=0):
         super().__init__(master)
-        self.game = renju.Game()
+        self.game = gomoku.rules.Game()
         self._black = black
         self._white = white
         self._player = self._black
@@ -38,7 +38,7 @@ class GomokuUI(tkinter.Frame):
             self.board_canvas.draw_board()
             self.master.unbind('<KeyPress>')
             self.board_canvas.bind('<Button-1>', self.read_move)
-            self.game = renju.Game()
+            self.game = gomoku.rules.Game()
             self._player = self._black
             self.game_loop()
 
@@ -54,8 +54,12 @@ class GomokuUI(tkinter.Frame):
         pos = self._player.get_pos(self.game)
 
         if pos:
+            print(gomoku.util.to_move(pos), pos)
             assert self.game.is_possible_move(pos)
             self.game.move(pos)
+            print(self.game.board())
+
+
             self.board_canvas.draw_stone(*pos, 
                                          color=str(self._player.color()), 
                                          move_n=self.game.move_n())
@@ -64,7 +68,7 @@ class GomokuUI(tkinter.Frame):
                 self._player.pos = None
 
             if not self.game:
-                if self.game._result == renju.Player.WHITE:
+                if self.game._result == gomoku.rules.Player.WHITE:
                     winner = self._white.name() + ' [white]'
                 else:
                     winner = self._black.name() + ' [black]'
@@ -88,7 +92,7 @@ class GomokuUI(tkinter.Frame):
     def test_loop(self):
         while True:
             res = self.game_loop()
-            if res == renju.Player.BLACK or res == renju.Player.WHITE:
+            if res == gomoku.rules.Player.BLACK or res == gomoku.rules.Player.WHITE:
                 return res
 
 
@@ -102,10 +106,10 @@ class GomokuUI(tkinter.Frame):
                 square_y = (event.y - pixel_y)**2
                 distance = math.sqrt(square_x + square_y)
 
-                if distance < 15 and self.game.is_possible_move((i, j)):
+                if distance < 15 and self.game.is_possible_move((j, i)):
                     # save position and unbind until next player finishes
                     # his move
-                    self._player.pos = (i, j)
+                    self._player.pos = (j, i)
                     self.board_canvas.unbind('<Button-1>')
                     return
 
@@ -151,7 +155,7 @@ class BoardCanvas(tkinter.Canvas):
             self.create_line(start_pixel_x, start_pixel_y, end_pixel_x, end_pixel_y, fill='#71767c')
 
             if 0 < j < 16:
-                self.add_text(start_pixel_x - 15, start_pixel_y, f'{16 - j}', font=self.legend_font)
+                self.add_text(start_pixel_x - 15, start_pixel_y, str(j), font=self.legend_font)
 
         
     def add_text(self, x, y, text, **kwargs):
@@ -166,18 +170,18 @@ class BoardCanvas(tkinter.Canvas):
 
 
     def draw_stone(self, row, col, color, move_n):
-        start_pixel_x = (row + 2) * 30 - 12
-        start_pixel_y = (col + 2) * 30 - 12
-        end_pixel_x = (row + 2) * 30 + 12
-        end_pixel_y = (col + 2) * 30 + 12
+        start_pixel_x = (col + 2) * 30 - 12
+        start_pixel_y = (row + 2) * 30 - 12
+        end_pixel_x = (col + 2) * 30 + 12
+        end_pixel_y = (row + 2) * 30 + 12
 
         self.create_oval(start_pixel_x, start_pixel_y, end_pixel_x, end_pixel_y, fill=color)
         text_color = 'black' if color is 'white' else 'white'
-        self.add_text((row + 2) * 30, (col + 2) * 30, f'{move_n}', font=self.move_font, fill=text_color)
+        self.add_text((col + 2) * 30, (row + 2) * 30, f'{move_n}', font=self.move_font, fill=text_color)
             
 
 def run_gui(black, white):
-    game = renju.Game()
+    game = gomoku.rules.Game()
     root = tkinter.Tk()
     app = GomokuUI(master=root, black=black, white=white, timeout=0)
     root.title("Gomoku")
@@ -190,7 +194,7 @@ def run_test(black, white, games_count=100):
     
 
     for i in range(games_count):
-        game = renju.Game()
+        game = gomoku.rules.Game()
         cur = black
         while game:
             game.move(cur.get_pos(game))
@@ -199,7 +203,7 @@ def run_test(black, white, games_count=100):
             else:
                 cur = black
 
-        if game.result() == renju.Player.BLACK:
+        if game.result() == gomoku.rules.Player.BLACK:
             black_win += 1
         else:
             white_win += 1
@@ -212,21 +216,25 @@ def run_test(black, white, games_count=100):
     print(f'black -- {black_win}\nwhite -- {white_win}')
 
 if __name__ == '__main__':
-    #run_test(agent.SLAgent(modelfile='models/model.augmentations.03.hdf5', color=renju.Player.BLACK),
-    #         agent.SLAgent(modelfile='models/model03.hdf5', color=renju.Player.WHITE))
+    #run_test(agent.SLAgent(modelfile='models/model.augmentations.03.hdf5', color=gomoku.rules.Player.BLACK),
+    #         agent.SLAgent(modelfile='models/model03.hdf5', color=gomoku.rules.Player.WHITE))
     
-    #run_test(agent.DummyAgent(color=renju.Player.BLACK),
-    #         agent.DummyAgent(color=renju.Player.WHITE),
+    #run_test(agent.DummyAgent(color=gomoku.rules.Player.BLACK),
+    #         agent.DummyAgent(color=gomoku.rules.Player.WHITE),
     #         games_count = 1000)
-    #sl_white = agent.SLAgent(modelfile='models/model.augmentations.01.hdf5', color=renju.Player.WHITE)
-    #sl_black = agent.SLAgent(modelfile='models/model.policy.04.hdf5', color=renju.Player.BLACK)
+    #sl_white = agent.SLAgent(modelfile='models/model.augmentations.01.hdf5', color=gomoku.rules.Player.WHITE)
+    #sl_black = agent.SLAgent(modelfile='models/rollout.01-0.19.hdf5', color=gomoku.rules.Player.BLACK)
 
-    #tree_white = agent.TreeAgent(modelfile='models/model03.hdf5', max_depth=10, num_iters=300, color=renju.Player.WHITE)
-    tree_black = agent.TreeAgent(modelfile='models/model.policy.04.hdf5', max_depth=10, num_iters=500, color=renju.Player.BLACK)
 
-    human_white = agent.HumanAgent(color=renju.Player.WHITE)
-    human_black = agent.HumanAgent(color=renju.Player.BLACK)
+    #tree_white = agent.TreeAgent(modelfile='models/model03.hdf5', max_depth=10, num_iters=500, color=gomoku.rules.Player.WHITE)
+    #tree_black = agent.TreeAgent(modelfile='models/model.policy.04.hdf5', max_depth=10, num_iters=500, color=gomoku.rules.Player.BLACK)
 
-    run_gui(tree_black, human_white)
+    human_white = agent.HumanAgent(color=gomoku.rules.Player.WHITE)
+    human_black = agent.HumanAgent(color=gomoku.rules.Player.BLACK)
+
+    backend_black = agent.BackendAgent('cpp_test/build/gomoku', color=gomoku.rules.Player.BLACK)
+    #backend_white = agent.BackendAgent('cpp_test/build/gomoku', color=gomoku.rules.Player.WHITE)
+
+    run_gui(backend_black, human_white)
     # run_test(sl_black, sl_white, games_count=100)
 

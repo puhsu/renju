@@ -41,7 +41,7 @@ std::string POS_TO_LETTER = "abcdefghjklmnop";
 std::unordered_map<char, int> LETTER_TO_POS;
 
 std::string to_move(pos_t pos) {
-    return POS_TO_LETTER[pos.first] + std::to_string(pos.second);
+    return POS_TO_LETTER[pos.second] + std::to_string(pos.first + 1);
 }
 
 pos_t to_pos(std::string move) {
@@ -50,7 +50,7 @@ pos_t to_pos(std::string move) {
             LETTER_TO_POS[POS_TO_LETTER[i]] = i;
         }
     }
-    return {stoi(move.substr(1, move.length())), LETTER_TO_POS[move[0]]};
+    return {stoi(move.substr(1, move.length())) - 1, LETTER_TO_POS[move[0]]};
 }
 
 
@@ -115,7 +115,8 @@ private:
     EigenArray board;
     std::vector<std::pair<int, int>> positions;
 
-    
+
+    // Set of functions to check if game terminates after each move
     bool check_row(int i, int j) const {
         int length = 1;
         int y = 1;
@@ -147,7 +148,6 @@ private:
     }
 
     bool check_main_diag(int i, int j) const {
-        //check for main diagnol
         int length = 1;
         int x = 1;
         while (i-x >= 0 && j-x >= 0 && board(i-x, j-x) == board(i, j)) {
@@ -163,7 +163,6 @@ private:
     }
 
     bool check_side_diag(int i, int j) const {
-        //check for main diagnol
         int length = 1;
         int x = 1;
         while (i-x >= 0 && j+x < width && board(i-x, j+x) == board(i, j)) {
@@ -198,7 +197,8 @@ public:
 
     Game(std::string data) {
         // construct game from existing game data with moves
-        std::cout << data << "\n";
+        // used to communicate with python gui and other agents
+
         board.setZero();
         positions.resize(0);
 
@@ -209,20 +209,19 @@ public:
                   std::back_inserter(moves));
 
         for (auto m : moves) {
-            std::cout << m << "\n";
             pos_t pos = to_pos(m);
-            std::cout << pos.first << " " << pos.second << "\n";
+            std::cout << pos.first << ", " << pos.second << "\n";
             move(pos.first, pos.second);
         }
     }
 
 
-    Game& operator=(Game other)
-    {
-        std::swap(result, other.result);
-        std::swap(player, other.player);
-        std::swap(board, other.board);
-        std::swap(positions, other.positions);
+    Game& operator=(Game other) {
+        // Assignment operator: does a deep copy
+        result = other.result;
+        player = other.player;
+        board = other.board;
+        positions = other.positions;
         return *this;
     }
 
@@ -265,6 +264,9 @@ public:
 
 
     Tensor get_state() const {
+        // Construct a tensorflow Tensor object, which represents 
+        // current game state input to policy network
+
         Tensor state = Tensor(tensorflow::DT_FLOAT, {1, 15, 15, 4});
         auto tensor_map = state.tensor<float, 4>();
         tensor_map.setZero();
@@ -286,7 +288,7 @@ public:
     }
 
 
-    int move_n() const {
+    size_t move_n() const {
         return positions.size();
     }
 
@@ -306,18 +308,18 @@ public:
     }
 };
 
-namespace backend {
 
+namespace backend {
     Game wait_for_game_update() {
         std::string data;
         std::getline(std::cin, data);
+        //std::cout << "got string: " << data << std::endl;
         return Game(data);
     }
     
-    void move(int i, int j) {
+    void send_pos_to_backend(int i, int j) {
         std::cout << to_move({i, j}) << "\n";
         std::cout.flush();
     }
-
 };
 

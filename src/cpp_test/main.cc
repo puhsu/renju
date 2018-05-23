@@ -35,11 +35,6 @@ private:
     bool leaf;                                         // true if node doesn't have children yet
     int visits_count;                                  // number of node visits in rollout stage (starting node counts)
     Color color;                                       // color of the current node
-
-    // algorithm parameters
-    const float EPS = 1e-6;
-    const float Cpuct = 1;
-
 public:
     /*
      *  Default constructor for creating a Node
@@ -78,12 +73,12 @@ public:
 
 
     float get_value() const {
-        if (!visits_count) {
-            return value;
-        }
-        return value / visits_count;
+        return value / (1 + visits_count);
     }
 
+    float get_reward() const {
+        return value;
+    }
 
     int get_visits_count() const {
         return visits_count;
@@ -141,18 +136,16 @@ public:
             // check that we have such child
             if (children[i] != nullptr && game.is_possible_move(i / 15, i % 15)) {
                 // calculate upper confidence bound
-                float u = Cpuct * probabilities[i] * std::sqrt(get_visits_count())
-                          / (1 + children[i]->get_visits_count());
-
+                float u = probabilities[i] * (1e-6 + std::sqrt(get_visits_count())) / (1 + children[i]->get_visits_count());
                 float ucb = children[i]->get_value() + u;
+
                 //std::cout << "UCB=" << ucb << "\n";
-                if (ucb >= best_value) {
+                if (ucb > best_value) {
                     selected = i;
                     best_value = ucb;
                 }
             }
         }
-        //lg << selected;
         return selected;
     }
 
@@ -191,9 +184,9 @@ private:
         if (winner == NONE) {
             return 0;
         } else if (node_color == winner) {
-            return 1;
-        } else {
             return -1;
+        } else {
+            return 1;
         }
     }
 
@@ -211,8 +204,8 @@ private:
              *  Selection
              */
 
-
             // goto leaf node
+           int save;
             std::shared_ptr<TreeNode> selected = root;
             while (!selected->is_leaf()) {
                 int action = selected->select_ucb(simulation_state);
@@ -224,6 +217,7 @@ private:
                 }
                 simulation_state.move(i, j);
                 selected = selected->children[action];
+                save = action;
             }
 
             // check termination
@@ -237,14 +231,22 @@ private:
              *  Expansion
              */
             selected->expand(simulation_state);
+            // and select child node
+            int action = selected->select_ucb(simulation_state);
+            selected = selected->children[action];
+            simulation_state.move(action / 15, action % 15);
+
+            ++expanded;
 
             /*
              *  Evaluation
              */
             Color winner = rollout(simulation_state);
             backprop(selected, winner);
+            //std::cout << winner << " " << save << std::endl << std::endl;
         }
         //std::cout << "Finished simulations: " << sim_count << std::endl;
+        //std::cout << "Root count: " << root->get_visits_count() << std::endl;
     }
 
     // update all counts and values up the tree
@@ -263,6 +265,7 @@ private:
         while (state && depth < rollout_depth) {
             ++depth;
             auto pred = run_model(rollout_session, state.get_state());
+            ++expanded;
 
             // flatten output
             Eigen::array<Eigen::DenseIndex, 1> dims{{15 * 15}};
@@ -278,29 +281,12 @@ private:
                 }
             }
 
-            // get at most top k actions
-            std::size_t k = 5;
-            std::vector<int> top_actions;
-            std::vector<float> top_prob;
-
-            std::priority_queue<std::pair<float, int>> q;
-            for (int i = 0; i < prob.size(); ++i) {
-                q.push({prob[i], i});
-            }
-
-            for (int i = 0; i < std::min(k, q.size()); ++i) {
-                int ki = q.top().second;
-                top_actions.push_back(actions[ki]);
-                top_prob.push_back(prob[ki]);
-                q.pop();
-            }
-
             // select action randomly with probabilities given by top_prob
             std::random_device rd;
             std::mt19937 generator(rd());
-            std::discrete_distribution<int> distribution(top_prob.begin(), top_prob.end());
+            std::discrete_distribution<int> distribution(prob.begin(), prob.end());
             int ind = distribution(generator);
-            state.move(top_actions[0] / 15, top_actions[0] % 15);
+            state.move(actions[ind] / 15, actions[ind] % 15);
         }
 
         return state.get_result();
@@ -325,12 +311,11 @@ public:
         if (state.move_n()) {
             opponent_pos = state.last_pos();
             opponent_action = opponent_pos.first * 15 + opponent_pos.second;
-            //std::cout << "(" << opponent_pos.first << ", " << opponent_pos.second << ")\n";
         }
 
         // we have this node in our tree
         // just update the root and save subtree
-        if (state.move_n() && root && root->children[opponent_action]) {
+        if (false && state.move_n() && root && root->children[opponent_action]) {
             root = root->children[opponent_action];
         } else {
             root = std::make_shared<TreeNode>(state.get_player());
@@ -344,16 +329,27 @@ public:
         int best_action;
         int max_count = std::numeric_limits<int>::min();
 
+//        std::cout << "Game state:\n----------\n";
+//        state.print_board();
+//        std::cout << "\nTree info:\n----------\n";
         for (int i = 0; i < 225; ++i) {
             if (root->children[i]) {
                 int cur_count = root->children[i]->get_visits_count();
+                if (cur_count || root->probabilities[i] > .1 || root->children[i]->get_reward() > 0) {
+//                    std::cout << "(" << i / 15 << ", " << i % 15 << ") [" << to_move({i/15, i%15})
+//                              << "] Count: " << cur_count
+//                              << " Prob: " << root->probabilities[i]
+//                              << " Reward: " << root->children[i]->get_reward()
+//                              << " Value: " << root->children[i]->get_value() << "\n";
+                }
+
                 if (cur_count > max_count) {
                     best_action = i;
                     max_count = cur_count;
                 }
-                //std::cout << cur_count << " (" << i/15 << ", " << i%15 << ")\n";
             }
         }
+        //std::cout << "Expanded: " << expanded << std::endl;
         return {best_action / 15, best_action % 15};
     }
 };
@@ -375,7 +371,6 @@ void signal_handler(int signum) {
     exit(0);
 }
 
-
 int main(int argc, char *argv[]) {
     // load models
     load_model(project_dir + "models/model03tf.pb", &policy_session);
@@ -388,10 +383,11 @@ int main(int argc, char *argv[]) {
 
 
     // Start the game with backend
-    MCTS tree(milliseconds{3000}, 10);
+    MCTS tree(milliseconds{6000}, 15);
     while (true) {
         Game state = backend::wait_for_game_update();
         tree.update_state(state);
+        tree.expanded = 0;
         pos_t pos = tree.get_pos();
         backend::send_pos_to_backend(pos.first, pos.second);
     }

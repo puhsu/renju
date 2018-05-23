@@ -212,8 +212,9 @@ class TreeAgent(Agent):
         beg = time.time()
         root = Node(None, value=1)
         self.game = copy.deepcopy(game)
-
-        for i in range(self.num_iters):
+        
+        
+        while time.time() - beg < 6:
             self.search(cur=root, depth=0)
 
         # TODO

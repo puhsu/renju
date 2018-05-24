@@ -42,8 +42,8 @@ public:
     TreeNode(Color c, std::shared_ptr<TreeNode> p = nullptr)
             : value(0)
             , leaf(true)
-            , visits_count(0)
             , parent(p)
+            , visits_count(0)
             , color(c)
     {
         children.resize(225);

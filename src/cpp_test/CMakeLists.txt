@@ -11,4 +11,4 @@ include_directories(
 
 link_directories(~/Documents/cs/project/renju/src/cpp_test/libs/tensorflow/lib/osx/)
 add_executable(gomoku main.cc rules.h util.h mcts.h)
-target_link_libraries(gomoku tensorflow_cc)
+target_link_libraries(gomoku tensorflow_cc protobuf)

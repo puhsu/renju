@@ -6,19 +6,20 @@
 #include "rules.h"
 #include "util.h"
 #include "mcts.h"
-
-const std::string project_dir = "/Users/irubachev/Documents/cs/project/renju/src/cpp_test/";
+// weights for models
+#include "rollout.h"
+#include "policy.h"
 
 int main(int argc, char *argv[]) {
     // load models
     Session *policy_session;
     Session *rollout_session;
-    load_model(project_dir + "models/model03tf.pb", &policy_session);
-    load_model(project_dir + "models/model.policy.04.pb", &rollout_session);
+    load_model(model_policy, model_policy_len, &policy_session);
+    load_model(model_rollout, model_rollout_len, &rollout_session);
 
     // Start the game with backend
-    MCTS tree(std::chrono::milliseconds{3000}, 15, policy_session, rollout_session);
-    while (!exit_requested) {
+    MCTS tree(std::chrono::milliseconds{1000}, 15, policy_session, rollout_session);
+    while (true) {
         Game state = wait_for_game_update();
         tree.update_state(state);
         pos_t pos = tree.get_pos();

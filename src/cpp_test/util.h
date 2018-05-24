@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include "tensorflow/core/public/session.h"
+#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/platform/env.h"
 
 #include "rules.h"
@@ -22,7 +23,7 @@ using tensorflow::Tensor;
  * Create new tensorflow session and load saved graph given
  * by path to the protobuf model file
  * */
-void load_model(std::string filepath, Session **session) {
+void load_model(unsigned char *data, unsigned int len, Session **session) {
     // Initialize session
     Status status = tensorflow::NewSession(tensorflow::SessionOptions(), session);
     if (!status.ok()) {
@@ -30,13 +31,12 @@ void load_model(std::string filepath, Session **session) {
         exit(1);
     }
 
-    // Read in the protobuf graph we exported
+    // Read graph from bytes
     tensorflow::GraphDef graph_def;
-    status = tensorflow::ReadBinaryProto(tensorflow::Env::Default(), filepath, &graph_def);
-    if (!status.ok()) {
-        std::cerr << status.ToString() << "\n";
-        exit(1);
+    if (!graph_def.ParseFromArray(data, len)) {
+        std::cerr << "Error reading graph\n";
     }
+
 
     // Add the graph to the session
     status = (*session)->Create(graph_def);

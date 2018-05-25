@@ -150,8 +150,7 @@ class SLAgent(Agent):
 
         input_board = numpy.array([state])
         prob = self._model.predict(input_board)[0]
-
-
+        print(prob.reshape((15, 15)))
 
         while True:
             p = numpy.random.choice(numpy.arange(15 * 15), p=prob)

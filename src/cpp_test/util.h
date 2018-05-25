@@ -53,12 +53,12 @@ void load_model(unsigned char *data, unsigned int len, Session **session) {
 EigenTensor run_model(Session *session, Tensor input) {
     Status status;
     std::vector<std::pair<tensorflow::string, Tensor>> feed_dict = {
-            {"input_1", input}
+            {"input_boards", input}
     };
     std::vector<Tensor> outputs;
 
     // Run the session
-    status = session->Run(feed_dict, {"output_node0"}, {}, &outputs);
+    status = session->Run(feed_dict, {"predictions0"}, {}, &outputs);
     if (!status.ok()) {
         std::cerr << status.ToString() << "\n";
         exit(1);

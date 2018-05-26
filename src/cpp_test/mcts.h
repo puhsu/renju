@@ -24,6 +24,8 @@
 #include "rules.h"
 #include "util.h"
 
+int created_count = 0;
+int deleted_count = 0;
 
 class TreeNode : public std::enable_shared_from_this<TreeNode> {
 private:
@@ -42,12 +44,16 @@ public:
     TreeNode(Color c, std::shared_ptr<TreeNode> p = nullptr)
             : value(0)
             , leaf(true)
-            , parent(p)
             , visits_count(0)
             , color(c)
+            , parent(p)
     {
         children.resize(225);
         probabilities.resize(225);
+    }
+
+    ~TreeNode() {
+        ++deleted_count;
     }
 
     bool is_leaf() const {
@@ -100,7 +106,6 @@ public:
         float probabilities_sum = 0.0;
         for (int i = 0; i < 15 * 15; ++i) {
             if (game.is_possible_move(i / 15, i % 15)) {
-                children[i] = std::make_shared<TreeNode>(another(color), shared_from_this());
                 probabilities[i] = flat_pred(i);
                 probabilities_sum += flat_pred(i);
             }
@@ -111,7 +116,7 @@ public:
                 probabilities[i] /= probabilities_sum;
             }
         } else {
-            // log something about it (never happens)
+            std::cerr << "[Bernard] Sum of probabilities is 0. FUCKUP!!!" << std::endl;
         }
     }
 
@@ -121,18 +126,29 @@ public:
      * to the upper confidence bound: argmax{Val + Prob * Ns / (1 + Nsa)}
      * Precondition: not called from leaf nodes
      * */
-    int select_ucb(const Game& game) const {
+    int select_ucb(const Game& game) {
         assert(!is_leaf());
 
-        int selected = -1;
+        int selected;
         float best_value = -std::numeric_limits<float>::max();
 
         for (int i = 0; i < 225; ++i) {
             // check that we have such child
-            if (children[i] != nullptr && game.is_possible_move(i / 15, i % 15)) {
+            if (game.is_possible_move(i / 15, i % 15)) {
+                // if no such child get default for value and count
+                // othervise retrieve this values from child
+                int child_value;
+                int child_count;
+                if (children[i] == nullptr) {
+                    child_value = 0;
+                    child_count = 0;
+                } else {
+                    child_value = children[i]->get_value();
+                    child_count = children[i]->get_visits_count();
+                }
+
                 // calculate upper confidence bound
-                float u = probabilities[i] * (1e-6 + std::sqrt(get_visits_count())) / (1 + children[i]->get_visits_count());
-                float ucb = children[i]->get_value() + u;
+                float ucb = child_value + probabilities[i] * (1e-6 + std::sqrt(get_visits_count())) / (1 + child_count);
 
                 //std::cout << "UCB=" << ucb << "\n";
                 if (ucb > best_value) {
@@ -141,6 +157,14 @@ public:
                 }
             }
         }
+
+        // if this is the first time
+        // create a child (do this here to save memory)
+        if (children[selected] == nullptr) {
+            children[selected] = std::make_shared<TreeNode>(another(color), shared_from_this());
+            ++created_count;
+        }
+
         return selected;
     }
 };
@@ -182,7 +206,7 @@ private:
                 int action = selected->select_ucb(simulation_state);
                 int i = action / 15, j = action % 15;
                 if (action == -1) {
-                    // log something (but this never happens)
+                    std::cerr << "[Bernard] Couldn't select action. FUCKUP!!!" << std::endl;
                 }
                 simulation_state.move(i, j);
                 selected = selected->children[action];
@@ -283,22 +307,8 @@ public:
      * */
     void update_state(Game& new_state) {
         state = new_state;
-        pos_t opponent_pos;
-        int opponent_action;
-
-        // get opponent move from new_state
-        if (state.move_n()) {
-            opponent_pos = state.last_pos();
-            opponent_action = opponent_pos.first * 15 + opponent_pos.second;
-        }
-
-        // we have this node as a grand child of root
-        // just update the root and save subtree
-        if (false && state.move_n() && root && root->children[opponent_action]) { // tmp fix.
-            root = root->children[opponent_action];
-        } else {
-            root = std::make_shared<TreeNode>(state.get_player());
-        }
+        root = std::make_shared<TreeNode>(state.get_player());
+        ++created_count;
     }
 
     pos_t get_pos() {
@@ -307,19 +317,9 @@ public:
         int best_action;
         int max_count = std::numeric_limits<int>::min();
 
-//        std::cout << "Game state:\n----------\n";
-//        state.print_board();
-//        std::cout << "\nTree info:\n----------\n";
         for (int i = 0; i < 225; ++i) {
             if (root->children[i]) {
                 int cur_count = root->children[i]->get_visits_count();
-                if (cur_count || root->probabilities[i] > .1 || root->children[i]->get_reward() > 0) {
-//                    std::cout << "(" << i / 15 << ", " << i % 15 << ") [" << to_move({i/15, i%15})
-//                              << "] Count: " << cur_count
-//                              << " Prob: " << root->probabilities[i]
-//                              << " Reward: " << root->children[i]->get_reward()
-//                              << " Value: " << root->children[i]->get_value() << "\n";
-                }
 
                 if (cur_count > max_count) {
                     best_action = i;

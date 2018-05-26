@@ -191,8 +191,6 @@ def run_test(black, white, games_count=100):
     black_win = 0
     white_win = 0
 
-    
-
     for i in range(games_count):
         game = gomoku.rules.Game()
         cur = black
@@ -222,20 +220,20 @@ if __name__ == '__main__':
     #run_test(agent.DummyAgent(color=gomoku.rules.Player.BLACK),
     #         agent.DummyAgent(color=gomoku.rules.Player.WHITE),
     #         games_count = 1000)
-    sl_white = agent.SLAgent(modelfile='models/model03.hdf5', color=gomoku.rules.Player.WHITE)
-    sl_black = agent.SLAgent(modelfile='new_models/policy.03-0.45.hdf5', color=gomoku.rules.Player.BLACK)
+    sl_white = agent.SLAgent(modelfile='models1/model.augmentations.01.hdf5', color=gomoku.rules.Player.WHITE)
+    sl_black = agent.SLAgent(modelfile='final_models/rollout.hdf5', color=gomoku.rules.Player.BLACK)
 
 
     #tree_white = agent.TreeAgent(modelfile='models/model03.hdf5', max_depth=10, num_iters=500, color=gomoku.rules.Player.WHITE)
     #tree_black = agent.TreeAgent(modelfile='models/model.augmentations.01.hdf5', max_depth=10, num_iters=500, color=gomoku.rules.Player.BLACK)
 
-    human_white = agent.HumanAgent(color=gomoku.rules.Player.WHITE)
-    human_black = agent.HumanAgent(color=gomoku.rules.Player.BLACK)
+    #human_white = agent.HumanAgent(color=gomoku.rules.Player.WHITE)
+    #human_black = agent.HumanAgent(color=gomoku.rules.Player.BLACK)
 
-    backend_black = agent.BackendAgent('cpp_test/build/gomoku', color=gomoku.rules.Player.BLACK)
-    #backend_white = agent.BackendAgent('cpp_test/build/gomoku', color=gomoku.rules.Player.WHITE)
+    backend_black = agent.BackendAgent('cpp_test/build/savetree', color=gomoku.rules.Player.BLACK)
+    backend_white = agent.BackendAgent('cpp_test/build/gomoku', color=gomoku.rules.Player.WHITE)
 
-    run_gui(sl_black, human_white)
+    run_gui(backend_black, backend_white)
     #backend_white.terminate()
     #run_test(sl_black, sl_white, games_count=100)
 

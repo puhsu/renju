@@ -6,6 +6,7 @@
 #include "rules.h"
 #include "util.h"
 #include "mcts.h"
+
 // weights for models
 #include "rollout.h"
 #include "policy.h"
@@ -13,7 +14,6 @@
 
 
 int main(int argc, char *argv[]) {
-    std::cerr << sizeof(TreeNode) << std::endl;
     // load models
     Session *policy_session;
     Session *rollout_session;
@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
     std::cerr << "[Bernard] Loaded rollout model" << std::endl;
 
     // Start game with backend
-    MCTS tree(std::chrono::milliseconds{3000}, 15, policy_session, rollout_session);
+    MCTS tree(std::chrono::milliseconds{14800}, 15, policy_session, rollout_session);
     std::cerr << "[Bernard] Initialized MCTS class" << std::endl;
     while (true) {
         created_count = 0;

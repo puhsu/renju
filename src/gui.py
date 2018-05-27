@@ -230,10 +230,12 @@ if __name__ == '__main__':
     #human_white = agent.HumanAgent(color=gomoku.rules.Player.WHITE)
     #human_black = agent.HumanAgent(color=gomoku.rules.Player.BLACK)
 
-    backend_black = agent.BackendAgent('cpp_test/build/savetree', color=gomoku.rules.Player.BLACK)
-    backend_white = agent.BackendAgent('cpp_test/build/gomoku', color=gomoku.rules.Player.WHITE)
+    backend_black = agent.BackendAgent('cpp_test/build/gomoku', color=gomoku.rules.Player.BLACK)
+    #backend_white = agent.BackendAgent('cpp_test/build/lightroll', color=gomoku.rules.Player.WHITE)
 
-    run_gui(backend_black, backend_white)
+    dummy_white = agent.DummyAgent(color=gomoku.rules.Player.WHITE)
+
+    #run_gui(backend_black, backend_white)
     #backend_white.terminate()
-    #run_test(sl_black, sl_white, games_count=100)
+    run_test(backend_black, dummy_white, games_count=100)
 

@@ -1,0 +1,32 @@
+#!/usr/local/bin/python3
+import argparse
+import gomoku.agent
+import gomoku.gui
+
+def main():
+    agents = {
+        "human_black": gomoku.agent.HumanAgent(color=gomoku.rules.Player.BLACK),
+        "human_white": gomoku.agent.HumanAgent(color=gomoku.rules.Player.WHITE),
+        "mcts_black": gomoku.agent.BackendAgent("cmake-build/bernard", color=gomoku.rules.Player.BLACK),
+        "mcts_white": gomoku.agent.BackendAgent("cmake-build/bernard", color=gomoku.rules.Player.WHITE)
+    }
+
+    parser = argparse.ArgumentParser(description="Start demo version of game with various agents")
+    parser.add_argument("--black", help="Choose agent for black color (default: human)", choices=["human", "mcts"], default="human")
+    parser.add_argument("--white", help="Choose agent for black color (default: mcts)", choices=["human", "mcts"], default="mcts")
+    parser.add_argument("--test", help="Run test between black and white agent and play for --games number of games", default=False, action="store_true")
+    parser.add_argument("--games", help="Number of games to run in test mode", type=int, default=100)    
+    args = parser.parse_args()
+
+    # get agents
+    black = agents[args.black + "_black"]
+    white = agents[args.white + "_white"]
+
+    if args.test:
+        gomoku.gui.run_test(black, white, games_count=args.games)
+    else:
+        gomoku.gui.run_gui(black, white)
+
+
+if __name__ == "__main__":
+    main()

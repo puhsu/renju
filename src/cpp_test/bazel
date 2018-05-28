@@ -1,8 +1,0 @@
-cc_binary(
-    name = "bernard",
-    srcs = ["main.cc", "mcts.h", "util.h", "rules.h", "policy.h", "rollout.h"],
-    deps = [
-         "//tensorflow/core:tensorflow",
-    ]
-)
-

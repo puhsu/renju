@@ -1,7 +1,7 @@
 # Current project
 models
 .idea
-cmake-build-debug
+cmake-build
 
 # macOS junk
 .DS_Store

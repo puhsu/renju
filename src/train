@@ -1,7 +1,8 @@
 #!/usr/local/bin/python3
+
 import argparse
 import numpy
-import util
+import gomoku.nnet
 
 
 def build_rollout_network():
@@ -91,9 +92,9 @@ def run_training():
         callbacks.append(keras.callbacks.TensorBoard(log_dir=args.logdir))
     
     # load training and validation data
-    games, states_count = util.load_training_data("data/train.renju", verbose=args.verbose)
-    validation_data = util.load_validation_data("data/test.renju", verbose=args.verbose)
-    train_generator = util.DataGenerator(games, states_count, 
+    games, states_count = gomoku.nnet.load_training_data("data/train.renju", verbose=args.verbose)
+    validation_data = gomoku.nnet.load_validation_data("data/test.renju", verbose=args.verbose)
+    train_generator = gomoku.nnet.DataGenerator(games, states_count, 
                                          batch_size=args.batch_size, 
                                          augmentations=args.augmentations)
 

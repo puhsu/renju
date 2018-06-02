@@ -12,13 +12,13 @@ This repository contains game enviroment with gui and implementation of differen
 - Monte Carlo Tree Search agent (uses policy and rollout networks with mcts algorithm)
 
 ## Python dependencies
-To install all requirements you can use virtualenv
+You can install all python requirements in virtualenv
 ```
 virtualenv -p /path/to/python3.6.5 renju_env
 renju_env/bin/activate
 pip install -r requirements.txt
 ```
-If you are using ubuntu you need to install tkinter 
+If you are using ubuntu you also need to install tkinter
 ```
 sudo apt-get update
 sudo apt-get install python3-tk

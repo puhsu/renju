@@ -11,6 +11,9 @@ This repository contains game enviroment with gui and implementation of differen
 - BeamSearch agent (uses same policy network with beam search to improve it)
 - Monte Carlo Tree Search agent (uses policy and rollout networks with mcts algorithm)
 
+## Python dependencies
+
+
 ## Training from scratch
 To train model from scratch you can use `./train` script. Run `./train --help` for details. If you then want to use
 MCTS agent you need to convert keras model to tensorflow and freeze graph with `./keras2tf` script.
@@ -19,6 +22,9 @@ MCTS agent you need to convert keras model to tensorflow and freeze graph with `
 The code is tested on macOS 10.12 and Ubuntu 14.04. There are two ways of building this code:
 1. You can use cmake to compile project and link dynamic tensorflow library (library built for macOS is in `src/libs/` (works faster).
 ```
+cd src
+wget https://www.dropbox.com/s/skszoznf0oih11f/libs.tar.gz
+tar -xzf libs.tar.gz
 mkdir cmake-build && cd cmake-build
 cmake .. -G"Unix Makefiles"
 make bernard

@@ -2,6 +2,9 @@
 models
 .idea
 cmake-build
+src/libs
+renju_env
+src/libs.tar.gz
 
 # macOS junk
 .DS_Store
@@ -17,6 +20,7 @@ __pycache__/
 # lab3 artifacts
 lab3/models/
 lab3/data/
+
 
 # C extensions
 *.so

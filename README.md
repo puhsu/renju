@@ -12,7 +12,17 @@ This repository contains game enviroment with gui and implementation of differen
 - Monte Carlo Tree Search agent (uses policy and rollout networks with mcts algorithm)
 
 ## Python dependencies
-
+To install all requirements you can use virtualenv
+```
+virtualenv -p /path/to/python3.6.5 renju_env
+renju_env/bin/activate
+pip install -r requirements.txt
+```
+If you are using ubuntu you need to install tkinter 
+```
+sudo apt-get update
+sudo apt-get install python3-tk
+```
 
 ## Training from scratch
 To train model from scratch you can use `./train` script. Run `./train --help` for details. If you then want to use
@@ -25,6 +35,7 @@ The code is tested on macOS 10.12 and Ubuntu 14.04. There are two ways of buildi
 cd src
 wget https://www.dropbox.com/s/skszoznf0oih11f/libs.tar.gz
 tar -xzf libs.tar.gz
+rm libs.tar.gz
 mkdir cmake-build && cd cmake-build
 cmake .. -G"Unix Makefiles"
 make bernard
